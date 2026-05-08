@@ -173,6 +173,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-02 | Phase 1 | Pending |
 | AUTH-03 | Phase 1 | Pending |
 | AUTH-04 | Phase 1 | Pending |
+| USER-07 | Phase 1 | Pending |
 | PROD-01 | Phase 2 | Pending |
 | PROD-02 | Phase 2 | Pending |
 | PROD-03 | Phase 2 | Pending |
@@ -189,7 +190,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CART-05 | Phase 2 | Pending |
 | CHECK-01 | Phase 3 | Pending |
 | CHECK-02 | Phase 3 | Pending |
-| CHECK-03 | Phase 2 | Pending |
+| CHECK-03 | Phase 3 | Pending |
 | CHECK-04 | Phase 3 | Pending |
 | CHECK-05 | Phase 3 | Pending |
 | CHECK-06 | Phase 3 | Pending |
@@ -215,7 +216,6 @@ Which phases cover which requirements. Updated during roadmap creation.
 | USER-04 | Phase 3 | Pending |
 | USER-05 | Phase 3 | Pending |
 | USER-06 | Phase 4 | Pending |
-| USER-07 | Phase 1 | Pending |
 | POINTS-01 | Phase 4 | Pending |
 | POINTS-02 | Phase 4 | Pending |
 | POINTS-03 | Phase 4 | Pending |
@@ -248,8 +248,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 **Coverage:**
 - v1 requirements: 68 total
 - Mapped to phases: 68
-- Unmapped: 0 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-08*
-*Last updated: 2026-05-08 after initial definition*
+*Last updated: 2026-05-08 after roadmap creation*
