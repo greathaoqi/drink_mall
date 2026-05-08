@@ -39,7 +39,14 @@
 4. User must verify age (18+) before purchasing alcohol
 5. User can contact customer service from any page
 
-**Plans:** TBD
+**Plans:** 5 plans
+
+Plans:
+- [ ] 01-01-PLAN.md - Backend project initialization with Spring Boot, Sa-Token, WxJava, MyBatis-Plus
+- [ ] 01-02-PLAN.md - Database schema and entity classes with mappers
+- [ ] 01-03-PLAN.md - Authentication endpoints (login/logout/age verification)
+- [ ] 01-04-PLAN.md - Mini Program foundation with auth components
+- [ ] 01-05-PLAN.md - Login/home/profile pages with customer service
 
 **UI hint:** yes
 
@@ -135,7 +142,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Compliance | 0/1 | Not started | - |
+| 1. Foundation & Compliance | 5/5 | Ready to execute | - |
 | 2. Core Shopping | 0/1 | Not started | - |
 | 3. Orders & Payment | 0/1 | Not started | - |
 | 4. Content & Engagement | 0/1 | Not started | - |
@@ -147,11 +154,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
-| AUTH-04 | Phase 1 | Pending |
-| USER-07 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Covered in 01-03, 01-04, 01-05 |
+| AUTH-02 | Phase 1 | Covered in 01-03, 01-05 |
+| AUTH-03 | Phase 1 | Covered in 01-03, 01-04, 01-05 |
+| AUTH-04 | Phase 1 | Covered in 01-02, 01-03, 01-04 |
+| USER-07 | Phase 1 | Covered in 01-05 |
 | PROD-01 | Phase 2 | Pending |
 | PROD-02 | Phase 2 | Pending |
 | PROD-03 | Phase 2 | Pending |
@@ -251,3 +258,4 @@ Phase 5 (Operations) <- Phase 4 (Content & Engagement) <---+
 ---
 
 *Roadmap created: 2026-05-08*
+*Last updated: 2026-05-08 after phase 1 planning*

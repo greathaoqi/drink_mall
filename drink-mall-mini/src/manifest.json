@@ -1,0 +1,19 @@
+{
+  "name": "drink-mall",
+  "appid": "",
+  "description": "酒水商城",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "postcss": true,
+      "minified": true
+    },
+    "usingComponents": true,
+    "requiredPrivateInfos": ["getLocation", "chooseLocation"]
+  }
+}

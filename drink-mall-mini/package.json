@@ -1,0 +1,22 @@
+{
+  "name": "drink-mall-mini",
+  "version": "1.0.0",
+  "scripts": {
+    "dev:mp-weixin": "uni -p mp-weixin",
+    "build:mp-weixin": "uni build -p mp-weixin"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "^3.0.0",
+    "@dcloudio/uni-mp-weixin": "^3.0.0",
+    "pinia": "^2.1.7",
+    "vue": "^3.4.21",
+    "uview-plus": "^3.3.0"
+  },
+  "devDependencies": {
+    "@dcloudio/vite-plugin-uni": "^3.0.0",
+    "@dcloudio/types": "^3.4.8",
+    "vite": "^5.2.0",
+    "typescript": "^5.4.0",
+    "sass": "^1.72.0"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(gsd-new-project)",
+      "WebSearch",
+      "WebFetch(domain:developers.weixin.qq.com)",
+      "WebFetch(domain:pay.weixin.qq.com)",
+      "WebFetch(domain:www.alibabacloud.com)",
+      "WebFetch(domain:www.china-briefing.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.shopify.com)",
+      "WebFetch(domain:www.nopcommerce.com)",
+      "WebFetch(domain:zhuanlan.zhihu.com)",
+      "WebFetch(domain:juejin.cn)",
+      "WebFetch(domain:uniapp.dcloud.net.cn)",
+      "WebFetch(domain:docs.taro.zone)",
+      "WebFetch(domain:help.apple.com)",
+      "WebFetch(domain:martinfowler.com)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:spring.io)",
+      "WebFetch(domain:owasp.org)",
+      "WebFetch(domain:www.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:docs.microsoft.com)",
+      "WebFetch(domain:cheatsheetseries.owasp.org)"
+    ]
+  }
+}
