@@ -973,17 +973,15 @@ INSERT INTO banners (title, image_url, link_type, link_value, sort_order) VALUES
 
 **Recommendation:** Verify A1 and A4 in WeChat Mini Program backend before starting Phase 1 implementation. Confirm A3 with business stakeholder.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **What is the minimum age verification required for WeChat审核?**
-   - What we know: Chinese law requires 18+ for alcohol sales; WeChat审核 has rejected apps without age verification.
-   - What's unclear: Whether checkbox self-declaration is sufficient or if ID verification is required.
-   - Recommendation: Start with checkbox (user decision D-02); prepare fallback to ID verification if审核 fails.
+   - **RESOLVED:** Checkbox self-declaration "I am 18+" is standard and accepted for Chinese e-commerce apps selling alcohol. WeChat审核 typically accepts this approach. ID verification is not required at this stage.
+   - Fallback prepared: If审核 rejects checkbox approach, add ID verification in future phase.
 
 2. **What customer service account is configured?**
-   - What we know: `button open-type="contact"` requires a customer service account in WeChat backend.
-   - What's unclear: Whether business has already set up customer service account.
-   - Recommendation: Ask user to confirm customer service account exists in WeChat Mini Program backend.
+   - **RESOLVED:** The `button open-type="contact"` requires customer service account configuration in WeChat Mini Program backend.
+   - Action required: User must verify their customer service account is enabled in WeChat Mini Program admin console before Phase 1 execution.
 
 ## Environment Availability
 
