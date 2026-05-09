@@ -28,7 +28,20 @@
       "Bash(git commit -m 'fix: use maven instead of non-existent wrapper in Dockerfile *)",
       "Bash(git commit -m 'fix: add missing TypeScript config files for admin panel *)",
       "Bash(git commit -m 'fix: add return type annotation for buildTree function *)",
-      "Bash(git commit -m 'fix: backend compilation errors *)"
+      "Bash(git commit -m 'fix: backend compilation errors *)",
+      "Read(//tmp/**)",
+      "Bash(mvn dependency:copy-dependencies -f test-pom.xml -DoutputDirectory=./wxjars -q)",
+      "Bash(unzip -l ./wxjars/weixin-java-miniapp-4.6.0.jar)",
+      "Bash(mvn dependency:copy -Dartifact=com.github.binarywang:weixin-java-miniapp:4.6.0:jar -DoutputDirectory=./wxtest -q)",
+      "Bash(unzip -l ./wxtest/weixin-java-miniapp-4.6.0.jar)",
+      "Bash(docker run *)",
+      "WebFetch(domain:search.maven.org)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/Wechat-Group/WxJava/develop/weixin-java-miniapp/src/main/java/me/chanjar/weixin/mp/api/WxMaService.java\")",
+      "Bash(curl -s \"https://api.github.com/repos/Wechat-Group/WxJava/contents/weixin-java-miniapp/src/main/java/me/chanjar/weixin\")",
+      "Bash(curl -sL \"https://github.com/Wechat-Group/WxJava/tree/develop/weixin-java-miniapp\")",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/Wechat-Group/WxJava/develop/weixin-java-miniapp/src/main/java/cn/binarywang/weixin/miniapp/api/WxMaService.java\")",
+      "Bash(curl -sL \"https://api.github.com/repos/Wechat-Group/WxJava/git/trees/develop?recursive=1\")",
+      "Bash(git commit -m 'fix: correct WxJava package imports for miniapp *)"
     ]
   }
 }
