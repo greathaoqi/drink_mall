@@ -11,8 +11,8 @@ import com.drinkmall.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
-import me.chanjar.weixin.mp.api.WxMaService;
-import me.chanjar.weixin.mp.bean.WxMaJscode2SessionResult;
+import me.chanjar.weixin.ma.api.WxMaService;
+import me.chanjar.weixin.ma.bean.WxMaJscode2SessionResult;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

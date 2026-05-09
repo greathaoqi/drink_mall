@@ -5,6 +5,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.Result;
 import com.drinkmall.dto.*;
+import com.drinkmall.entity.Order;
 import com.drinkmall.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

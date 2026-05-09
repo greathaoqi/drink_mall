@@ -21,7 +21,14 @@
       "WebFetch(domain:owasp.org)",
       "WebFetch(domain:www.ncbi.nlm.nih.gov)",
       "WebFetch(domain:docs.microsoft.com)",
-      "WebFetch(domain:cheatsheetseries.owasp.org)"
+      "WebFetch(domain:cheatsheetseries.owasp.org)",
+      "Bash(git push *)",
+      "Bash(gh auth *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'fix: use maven instead of non-existent wrapper in Dockerfile *)",
+      "Bash(git commit -m 'fix: add missing TypeScript config files for admin panel *)",
+      "Bash(git commit -m 'fix: add return type annotation for buildTree function *)",
+      "Bash(git commit -m 'fix: backend compilation errors *)"
     ]
   }
 }

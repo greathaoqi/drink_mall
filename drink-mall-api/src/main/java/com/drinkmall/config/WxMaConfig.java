@@ -1,8 +1,8 @@
 package com.drinkmall.config;
 
-import me.chanjar.weixin.mp.api.WxMaService;
-import me.chanjar.weixin.mp.api.impl.WxMaServiceImpl;
-import me.chanjar.weixin.mp.config.impl.WxMaDefaultConfigImpl;
+import me.chanjar.weixin.ma.api.WxMaService;
+import me.chanjar.weixin.ma.api.impl.WxMaServiceImpl;
+import me.chanjar.weixin.ma.config.impl.WxMaDefaultConfigImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
