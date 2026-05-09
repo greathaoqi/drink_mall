@@ -57,7 +57,16 @@ const loadData = async () => {
   tableData.value = buildTree(res.data || [])
 }
 
-const buildTree = (items: any[], parentId: number | null = null) => {
+interface CategoryItem {
+  id: number
+  name: string
+  parentId: number | null
+  sortOrder: number
+  status: number
+  children?: CategoryItem[]
+}
+
+const buildTree = (items: any[], parentId: number | null = null): CategoryItem[] => {
   return items.filter(x => x.parentId === parentId).map(x => ({ ...x, children: buildTree(items, x.id) }))
 }
 
