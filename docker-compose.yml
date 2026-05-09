@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: drink-mall-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: drink_mall
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./drink-mall-api/src/main/resources/db/migration:/docker-entrypoint-initdb.d
+    networks:
+      - drink-mall-network
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: drink-mall-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - drink-mall-network
+
+  backend:
+    build:
+      context: ./drink-mall-api
+      dockerfile: Dockerfile
+    container_name: drink-mall-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/drink_mall?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root123456
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - drink-mall-network
+
+  admin:
+    build:
+      context: ./drink-mall-admin
+      dockerfile: Dockerfile
+    container_name: drink-mall-admin
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    networks:
+      - drink-mall-network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  drink-mall-network:
+    driver: bridge
