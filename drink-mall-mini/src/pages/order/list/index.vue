@@ -31,7 +31,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import request from '@/utils/request'
 
 const tabs = [
@@ -65,7 +65,7 @@ const loadOrders = async () => {
 const loadMore = async () => {
   if (!hasMore.value) return
   loadStatus.value = 'loading'
-  const res = await request.get('/order', { params: { status: activeTab.value, page: page.value } })
+  const res = await request.get('/order', { status: activeTab.value, page: page.value })
   const newOrders = res.data?.records || []
   orders.value = [...orders.value, ...newOrders]
   hasMore.value = newOrders.length >= 10
@@ -76,6 +76,10 @@ const loadMore = async () => {
 const goDetail = (orderId: number) => {
   uni.navigateTo({ url: `/pages/order/detail/index?id=${orderId}` })
 }
+
+onLoad((options: any) => {
+  if (options?.status) activeTab.value = options.status
+})
 
 onShow(() => loadOrders())
 </script>

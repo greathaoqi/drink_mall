@@ -3,6 +3,7 @@ package com.drinkmall.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.BusinessException;
@@ -72,9 +73,14 @@ public class OrderServiceImpl implements OrderService {
             item.setTotalAmount(itemTotal);
             items.add(item);
 
-            product.setStock(product.getStock() - itemInfo.getQuantity());
-            product.setSales(product.getSales() + itemInfo.getQuantity());
-            productMapper.updateById(product);
+            int qty = itemInfo.getQuantity();
+            int updated = productMapper.update(null, new LambdaUpdateWrapper<Product>()
+                    .eq(Product::getId, product.getId())
+                    .ge(Product::getStock, qty)
+                    .setSql("stock = stock - " + qty + ", sales = sales + " + qty));
+            if (updated == 0) {
+                throw new BusinessException(400, "库存不足: " + product.getName());
+            }
         }
 
         Order order = new Order();
@@ -150,12 +156,10 @@ public class OrderServiceImpl implements OrderService {
                 new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId)
         );
         for (OrderItem item : items) {
-            Product product = productMapper.selectById(item.getProductId());
-            if (product != null) {
-                product.setStock(product.getStock() + item.getQuantity());
-                product.setSales(product.getSales() - item.getQuantity());
-                productMapper.updateById(product);
-            }
+            int qty = item.getQuantity();
+            productMapper.update(null, new LambdaUpdateWrapper<Product>()
+                    .eq(Product::getId, item.getProductId())
+                    .setSql("stock = stock + " + qty + ", sales = GREATEST(0, sales - " + qty + ")"));
         }
     }
 

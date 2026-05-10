@@ -1,10 +1,16 @@
 <script lang="ts">
+import { checkAuth } from '@/services/auth'
+import { useUserStore } from '@/store/user'
+
 export default {
   globalData: {
     productListCategoryId: null as number | null
   },
   onLaunch() {
-    console.log('App Launch')
+    const userStore = useUserStore()
+    if (userStore.token) {
+      checkAuth().catch(() => {})
+    }
   },
   onShow() {
     console.log('App Show')

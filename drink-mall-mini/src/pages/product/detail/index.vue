@@ -20,7 +20,7 @@
 
     <view class="detail-card">
       <view class="title">商品详情</view>
-      <rich-text :nodes="product.description"></rich-text>
+      <text class="desc-text">{{ product.description }}</text>
     </view>
 
     <view class="bottom-bar">
@@ -108,6 +108,7 @@ onLoad((options: any) => {
 .sales { font-size: 24rpx; color: #999; margin-top: 10rpx; }
 .detail-card { background: #fff; padding: 30rpx; }
 .detail-card .title { font-size: 28rpx; font-weight: bold; padding-bottom: 20rpx; border-bottom: 1rpx solid #eee; }
+.desc-text { display: block; font-size: 28rpx; color: #666; line-height: 1.7; padding-top: 20rpx; }
 .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 100rpx; background: #fff; display: flex; align-items: center; padding: 0 20rpx; box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.1); }
 .icons { display: flex; gap: 30rpx; }
 .icon-btn { display: flex; flex-direction: column; align-items: center; font-size: 20rpx; background: transparent; border: none; padding: 0; line-height: 1.4; }
