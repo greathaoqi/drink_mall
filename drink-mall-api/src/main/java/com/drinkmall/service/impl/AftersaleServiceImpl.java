@@ -67,7 +67,7 @@ public class AftersaleServiceImpl implements AftersaleService {
     @Override
     public Aftersale getAftersaleDetail(Long userId, Long aftersaleId) {
         Aftersale aftersale = aftersaleMapper.selectById(aftersaleId);
-        if (aftersale == null || !aftersale.getUserId().equals(userId)) {
+        if (aftersale == null || aftersale.getUserId() == null || !aftersale.getUserId().equals(userId)) {
             throw new BusinessException(404, "售后申请不存在");
         }
         return aftersale;
