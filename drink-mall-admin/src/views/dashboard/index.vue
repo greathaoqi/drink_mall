@@ -78,7 +78,7 @@ const statusTagType = (status: string) => {
 onMounted(async () => {
   try {
     const [ordersRes, usersRes, withdrawalsRes, aftersaleRes] = await Promise.all([
-      request.get('/api/v1/admin/order/list', { params: { page: 1, size: 5 } }),
+      request.get('/api/v1/admin/order/list', { params: { page: 1, size: 50 } }),
       request.get('/api/v1/admin/user/list', { params: { page: 1, size: 1 } }),
       request.get('/api/v1/admin/finance/withdrawals', { params: { status: 'pending', page: 1, size: 5 } }),
       request.get('/api/v1/admin/order/aftersale/list', { params: { page: 1, size: 1 } })

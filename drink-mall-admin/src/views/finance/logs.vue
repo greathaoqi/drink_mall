@@ -8,7 +8,7 @@
       <el-table :data="tableData" v-loading="loading" v-if="activeTab === 'points'">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="userId" label="用户ID" width="100" />
-        <el-table-column prop="amount" label="积分" width="100"><template #default="{ row }"><span :style="{ color: row.amount > 0 ? 'green' : 'red' }">{{ row.amount > 0 ? '+' : '' }}{{ row.amount }}</span></template></el-table-column>
+        <el-table-column prop="points" label="积分变动" width="100"><template #default="{ row }"><span :style="{ color: row.points > 0 ? 'green' : 'red' }">{{ row.points > 0 ? '+' : '' }}{{ row.points }}</span></template></el-table-column>
         <el-table-column prop="changeType" label="类型" width="120" />
         <el-table-column prop="remark" label="备注" />
         <el-table-column prop="createdAt" label="时间" width="180" />

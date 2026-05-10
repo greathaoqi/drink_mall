@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,7 +26,6 @@ public class OrderCancelScheduler {
     private final ProductMapper productMapper;
 
     @Scheduled(fixedDelay = 60000)
-    @Transactional
     public void cancelExpiredOrders() {
         LocalDateTime expiry = LocalDateTime.now().minusMinutes(30);
         List<Order> expiredOrders = orderMapper.selectList(
@@ -38,10 +36,15 @@ public class OrderCancelScheduler {
         if (expiredOrders.isEmpty()) return;
 
         for (Order order : expiredOrders) {
-            order.setStatus("cancelled");
-            order.setCancelReason("超时未支付自动取消");
-            order.setCancelTime(LocalDateTime.now());
-            orderMapper.updateById(order);
+            int updated = orderMapper.update(null, new LambdaUpdateWrapper<Order>()
+                .eq(Order::getId, order.getId())
+                .eq(Order::getStatus, "pending")
+                .set(Order::getStatus, "cancelled")
+                .set(Order::getCancelReason, "超时未支付自动取消")
+                .set(Order::getCancelTime, LocalDateTime.now()));
+            if (updated == 0) {
+                continue;
+            }
 
             List<OrderItem> items = orderItemMapper.selectList(
                 new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, order.getId())
