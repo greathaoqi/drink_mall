@@ -66,7 +66,7 @@ const recentOrders = ref<any[]>([])
 const pendingWithdrawals = ref<any[]>([])
 
 const statusLabel = (status: string) => {
-  const map: Record<string, string> = { pending: '待付款', paid: '待发货', shipped: '待收货', completed: '已完成', cancelled: '已取消' }
+  const map: Record<string, string> = { pending: '待付款', paid: '已支付', shipped: '待收货', completed: '已完成', cancelled: '已取消' }
   return map[status] || status
 }
 
@@ -83,18 +83,18 @@ onMounted(async () => {
       request.get('/api/v1/admin/finance/withdrawals', { params: { status: 'pending', page: 1, size: 5 } }),
       request.get('/api/v1/admin/order/aftersale/list', { params: { page: 1, size: 1 } })
     ])
-    // request interceptor unwraps envelope: res is already the inner `data` field
-    if (ordersRes?.records) {
-      recentOrders.value = ordersRes.records
+    // request interceptor returns full envelope: res is { code, data, message }
+    if (ordersRes?.data?.records) {
+      recentOrders.value = ordersRes.data.records
       const today = new Date().toISOString().slice(0, 10)
       stats.value.todayOrders = recentOrders.value.filter((o: any) => o.createdAt?.startsWith(today)).length
       stats.value.todaySales = recentOrders.value
         .filter((o: any) => o.createdAt?.startsWith(today) && ['paid', 'shipped', 'completed'].includes(o.status))
         .reduce((s: number, o: any) => s + Number(o.payAmount || 0), 0)
     }
-    if (usersRes?.total != null) stats.value.totalUsers = usersRes.total
-    if (withdrawalsRes?.records) pendingWithdrawals.value = withdrawalsRes.records
-    if (aftersaleRes?.total != null) stats.value.pendingAftersales = aftersaleRes.total
+    if (usersRes?.data?.total != null) stats.value.totalUsers = usersRes.data.total
+    if (withdrawalsRes?.data?.records) pendingWithdrawals.value = withdrawalsRes.data.records
+    if (aftersaleRes?.data?.total != null) stats.value.pendingAftersales = aftersaleRes.data.total
   } catch (e) {
     console.error('Dashboard load error', e)
   }
