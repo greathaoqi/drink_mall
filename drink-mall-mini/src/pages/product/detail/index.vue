@@ -46,6 +46,7 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { http } from '@/utils/request'
+import { useUserStore } from '@/store/user'
 
 const product = ref<any>({})
 const productId = ref(0)
@@ -69,8 +70,8 @@ const loadProduct = async () => {
 }
 
 const handleAddCart = async () => {
-  const userStore = await import('@/store/user').then(m => m.useUserStore())
-  if (!userStore().isLoggedIn) {
+  const userStore = useUserStore()
+  if (!userStore.isLoggedIn) {
     uni.navigateTo({ url: '/pages/login/index' })
     return
   }
