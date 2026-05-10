@@ -3,9 +3,11 @@ package com.drinkmall.service.admin.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.BusinessException;
+import com.drinkmall.entity.BalanceLog;
 import com.drinkmall.entity.PointsLog;
 import com.drinkmall.entity.User;
 import com.drinkmall.entity.Withdrawal;
+import com.drinkmall.mapper.BalanceLogMapper;
 import com.drinkmall.mapper.PointsLogMapper;
 import com.drinkmall.mapper.UserMapper;
 import com.drinkmall.mapper.WithdrawalMapper;
@@ -26,6 +28,7 @@ public class AdminFinanceServiceImpl implements AdminFinanceService {
     private final WithdrawalMapper withdrawalMapper;
     private final PointsLogMapper pointsLogMapper;
     private final UserMapper userMapper;
+    private final BalanceLogMapper balanceLogMapper;
 
     @Override
     public Page<Withdrawal> getWithdrawals(String status, Integer page, Integer size) {
@@ -72,7 +75,28 @@ public class AdminFinanceServiceImpl implements AdminFinanceService {
 
     @Override
     public Page<Map<String, Object>> getBalanceLogs(Long userId, Integer page, Integer size) {
-        return new Page<>(page, size);
+        Page<BalanceLog> pageParam = new Page<>(page, size);
+        LambdaQueryWrapper<BalanceLog> wrapper = new LambdaQueryWrapper<BalanceLog>()
+            .orderByDesc(BalanceLog::getCreatedAt);
+        if (userId != null) wrapper.eq(BalanceLog::getUserId, userId);
+        Page<BalanceLog> logs = balanceLogMapper.selectPage(pageParam, wrapper);
+
+        Page<Map<String, Object>> result = new Page<>(page, size);
+        result.setTotal(logs.getTotal());
+        result.setRecords(logs.getRecords().stream().map(log -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", log.getId());
+            m.put("userId", log.getUserId());
+            m.put("changeType", log.getChangeType());
+            m.put("amount", log.getAmount());
+            m.put("beforeBalance", log.getBeforeBalance());
+            m.put("afterBalance", log.getAfterBalance());
+            m.put("orderId", log.getOrderId());
+            m.put("remark", log.getRemark());
+            m.put("createdAt", log.getCreatedAt());
+            return m;
+        }).collect(java.util.stream.Collectors.toList()));
+        return result;
     }
 
     @Override
