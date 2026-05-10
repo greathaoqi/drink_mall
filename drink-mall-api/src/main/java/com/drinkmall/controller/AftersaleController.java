@@ -4,12 +4,12 @@ import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.Result;
+import com.drinkmall.dto.CreateAftersaleRequest;
 import com.drinkmall.entity.Aftersale;
 import com.drinkmall.service.AftersaleService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/aftersale")
@@ -20,13 +20,12 @@ public class AftersaleController {
 
     @PostMapping
     @SaCheckLogin
-    public Result<Aftersale> apply(@RequestBody Map<String, Object> body) {
+    public Result<Aftersale> apply(@Valid @RequestBody CreateAftersaleRequest request) {
         Long userId = StpUtil.getLoginIdAsLong();
-        Long orderId = Long.valueOf(String.valueOf(body.get("orderId")));
-        String type = (String) body.getOrDefault("type", "refund");
-        String reason = (String) body.getOrDefault("reason", "");
-        String description = (String) body.getOrDefault("description", "");
-        return Result.success(aftersaleService.applyAftersale(userId, orderId, type, reason, description));
+        return Result.success(aftersaleService.applyAftersale(
+            userId, request.getOrderId(),
+            request.getType(), request.getReason(), request.getDescription()
+        ));
     }
 
     @GetMapping("/list")
