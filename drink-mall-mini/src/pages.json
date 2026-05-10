@@ -14,7 +14,19 @@
     { "path": "pages/points/index", "style": { "navigationBarTitleText": "积分兑换" } },
     { "path": "pages/video/index", "style": { "navigationBarTitleText": "精彩视频" } },
     { "path": "pages/help/index", "style": { "navigationBarTitleText": "帮助中心" } },
-    { "path": "pages/aftersale/index", "style": { "navigationBarTitleText": "申请售后" } }
+    { "path": "pages/aftersale/index", "style": { "navigationBarTitleText": "申请售后" } },
+    {
+      "path": "pages/announcement/list/index",
+      "style": {
+        "navigationBarTitleText": "平台公告"
+      }
+    },
+    {
+      "path": "pages/announcement/detail/index",
+      "style": {
+        "navigationBarTitleText": "公告详情"
+      }
+    }
   ],
   "tabBar": {
     "color": "#999999",

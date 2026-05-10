@@ -15,6 +15,18 @@
 
     <view class="section">
       <view class="section-header">
+        <text class="section-title">平台公告</text>
+        <text class="section-more" @click="goAnnouncements">更多</text>
+      </view>
+      <view v-for="item in announcements" :key="item.id" class="announcement-row" @click="goAnnouncementDetail(item.id)">
+        <text class="ann-title">{{ item.title }}</text>
+        <text class="ann-date">{{ item.createdAt?.slice(0, 10) }}</text>
+      </view>
+      <view v-if="announcements.length === 0" class="ann-empty">暂无公告</view>
+    </view>
+
+    <view class="section">
+      <view class="section-header">
         <text class="section-title">商品分类</text>
       </view>
       <view class="category-grid">
@@ -56,6 +68,7 @@ interface Product { id: number; name: string; mainImage: string; price: number }
 const banners = ref<Banner[]>([])
 const categories = ref<Category[]>([])
 const products = ref<Product[]>([])
+const announcements = ref<{ id: number; title: string; createdAt: string }[]>([])
 
 onShow(() => {
   loadPublicContent()
@@ -71,6 +84,11 @@ async function loadPublicContent() {
 
     const productRes = await http.get<{ records: Product[] }>('/public/products', { pageSize: 4 }, { requireAuth: false })
     if (productRes.code === 200) products.value = productRes.data.records || productRes.data
+
+    const annRes = await http.get<{ id: number; title: string; createdAt: string }[]>(
+      '/content/announcements', {}, { requireAuth: false }
+    )
+    if (annRes.code === 200) announcements.value = (annRes.data || []).slice(0, 3)
   } catch (error) {
     console.error('Failed to load public content:', error)
   }
@@ -98,6 +116,13 @@ function navigateToProducts() {
 
 function navigateToProductDetail(product: Product) {
   uni.navigateTo({ url: `/pages/product/detail/index?id=${product.id}` })
+}
+
+function goAnnouncements() {
+  uni.navigateTo({ url: '/pages/announcement/list/index' })
+}
+function goAnnouncementDetail(id: number) {
+  uni.navigateTo({ url: `/pages/announcement/detail/index?id=${id}` })
 }
 </script>
 
@@ -228,5 +253,33 @@ function navigateToProductDetail(product: Product) {
   font-size: 32rpx;
   font-weight: 600;
   color: #FA5151;
+}
+
+.announcement-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+.ann-title {
+  font-size: 28rpx;
+  color: #333;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 20rpx;
+}
+.ann-date {
+  font-size: 24rpx;
+  color: #aaa;
+  flex-shrink: 0;
+}
+.ann-empty {
+  text-align: center;
+  padding: 20rpx;
+  color: #ccc;
+  font-size: 26rpx;
 }
 </style>
