@@ -6,13 +6,13 @@
     </view>
 
     <view class="address-card">
-      <view class="receiver">{{ order.address?.receiverName }} {{ order.address?.receiverPhone }}</view>
+      <view class="receiver">{{ order.address?.name }} {{ order.address?.phone }}</view>
       <view class="address">{{ order.address?.province }}{{ order.address?.city }}{{ order.address?.district }}{{ order.address?.detail }}</view>
     </view>
 
     <view class="goods-card">
       <view v-for="item in order.items" :key="item.itemId" class="goods-item">
-        <image :src="item.productImage" class="goods-img" />
+        <view class="goods-img"><view class="mini-bottle"></view></view>
         <view class="goods-info">
           <text class="goods-name">{{ item.productName }}</text>
           <view class="goods-bottom">
@@ -70,24 +70,24 @@ const statusDesc = (status: string) => {
 }
 
 const loadOrder = async () => {
-  const res = await request.get(`/api/v1/order/${orderId.value}`)
+  const res = await request.get(`/order/${orderId.value}`)
   order.value = res.data || {}
 }
 
 const handleCancel = async () => {
-  await request.post(`/api/v1/order/${orderId.value}/cancel`)
+  await request.post(`/order/${orderId.value}/cancel`)
   uni.showToast({ title: '已取消', icon: 'success' })
   loadOrder()
 }
 
 const handlePay = async () => {
-  await request.post(`/api/v1/order/${orderId.value}/pay`)
+  await request.post(`/order/${orderId.value}/balance-pay`)
   uni.showToast({ title: '支付成功', icon: 'success' })
   loadOrder()
 }
 
 const handleConfirm = async () => {
-  await request.post(`/api/v1/order/${orderId.value}/confirm`)
+  await request.post(`/order/${orderId.value}/confirm`)
   uni.showToast({ title: '已确认收货', icon: 'success' })
   loadOrder()
 }
@@ -112,7 +112,9 @@ onLoad((options: any) => {
 .address { font-size: 26rpx; color: #666; margin-top: 10rpx; }
 .goods-card { background: #fff; margin: 20rpx; padding: 20rpx; border-radius: 12rpx; }
 .goods-item { display: flex; padding: 20rpx 0; border-bottom: 1rpx solid #f5f5f5; }
-.goods-img { width: 160rpx; height: 160rpx; border-radius: 8rpx; }
+.goods-img { width: 160rpx; height: 160rpx; border-radius: 12rpx; background: linear-gradient(135deg, #f7dfb4, #9a5c27); display: flex; align-items: center; justify-content: center; }
+.mini-bottle { width: 34rpx; height: 82rpx; border-radius: 16rpx 16rpx 8rpx 8rpx; background: #4d2a13; }
+.mini-bottle::before { content: ''; display: block; width: 16rpx; height: 24rpx; border-radius: 8rpx 8rpx 0 0; background: #4d2a13; margin: -20rpx auto 0; }
 .goods-info { flex: 1; margin-left: 20rpx; }
 .goods-name { font-size: 28rpx; }
 .goods-bottom { display: flex; justify-content: space-between; margin-top: 60rpx; }

@@ -41,7 +41,8 @@
       "Bash(curl -sL \"https://github.com/Wechat-Group/WxJava/tree/develop/weixin-java-miniapp\")",
       "Bash(curl -sL \"https://raw.githubusercontent.com/Wechat-Group/WxJava/develop/weixin-java-miniapp/src/main/java/cn/binarywang/weixin/miniapp/api/WxMaService.java\")",
       "Bash(curl -sL \"https://api.github.com/repos/Wechat-Group/WxJava/git/trees/develop?recursive=1\")",
-      "Bash(git commit -m 'fix: correct WxJava package imports for miniapp *)"
+      "Bash(git commit -m 'fix: correct WxJava package imports for miniapp *)",
+      "Bash(mvn compile *)"
     ]
   }
 }

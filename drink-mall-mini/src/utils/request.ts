@@ -7,6 +7,7 @@ interface RequestOptions {
   header?: Record<string, string>
   showLoading?: boolean
   showError?: boolean
+  requireAuth?: boolean  // 是否需要登录，默认true，public接口设为false
 }
 
 interface ApiResponse<T = any> {
@@ -17,8 +18,8 @@ interface ApiResponse<T = any> {
 
 const BASE_URL = 'http://localhost:8080/api/v1'
 
-export async function request<T = any>(options: RequestOptions): Promise<ApiResponse<T>> {
-  const { url, method = 'GET', data, header = {}, showLoading = false, showError = true } = options
+async function request<T = any>(options: RequestOptions): Promise<ApiResponse<T>> {
+  const { url, method = 'GET', data, header = {}, showLoading = false, showError = true, requireAuth = true } = options
 
   if (showLoading) {
     uni.showLoading({ title: '加载中...' })
@@ -32,6 +33,7 @@ export async function request<T = any>(options: RequestOptions): Promise<ApiResp
         data,
         header: {
           'Content-Type': 'application/json',
+          ...(useUserStore().token ? { Authorization: useUserStore().token } : {}),
           ...header
         },
         withCredentials: true,
@@ -39,9 +41,15 @@ export async function request<T = any>(options: RequestOptions): Promise<ApiResp
           if (res.statusCode === 200) {
             resolve(res.data as ApiResponse<T>)
           } else if (res.statusCode === 401) {
-            const userStore = useUserStore()
-            userStore.clearUser()
-            reject(new Error('未登录'))
+            // 只对需要认证的接口清除用户状态并报错
+            if (requireAuth) {
+              const userStore = useUserStore()
+              userStore.clearUser()
+              reject(new Error('请先登录'))
+            } else {
+              // 公共接口401直接返回空数据
+              resolve({ code: 401, message: '未授权', data: null as T })
+            }
           } else {
             reject(new Error(`请求失败: ${res.statusCode}`))
           }
@@ -68,7 +76,7 @@ export async function request<T = any>(options: RequestOptions): Promise<ApiResp
   }
 }
 
-export const http = {
+const http = {
   get<T = any>(url: string, data?: any, options?: Partial<RequestOptions>) {
     return request<T>({ url, method: 'GET', data, ...options })
   },
@@ -82,3 +90,7 @@ export const http = {
     return request<T>({ url, method: 'DELETE', data, ...options })
   }
 }
+
+export { http }
+export { request }
+export default http

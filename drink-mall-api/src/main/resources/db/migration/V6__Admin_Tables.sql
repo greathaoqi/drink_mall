@@ -65,7 +65,5 @@ INSERT IGNORE INTO sys_config (config_key, config_value, description) VALUES
 ('withdraw.min.amount', '10', 'Minimum withdrawal amount'),
 ('withdraw.max.amount', '5000', 'Maximum withdrawal amount');
 
--- Add missing columns to user table
-ALTER TABLE user ADD COLUMN IF NOT EXISTS balance DECIMAL(10,2) DEFAULT 0 COMMENT 'Account balance';
-ALTER TABLE user ADD COLUMN IF NOT EXISTS frozen_balance DECIMAL(10,2) DEFAULT 0 COMMENT 'Frozen balance';
-ALTER TABLE user ADD COLUMN IF NOT EXISTS phone VARCHAR(20) COMMENT 'Phone number';
+-- Add missing columns to users table (balance and phone already exist in V1, only add frozen_balance)
+ALTER TABLE users ADD COLUMN frozen_balance DECIMAL(10,2) DEFAULT 0.00 COMMENT 'Frozen balance';

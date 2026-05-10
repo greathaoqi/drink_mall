@@ -124,7 +124,7 @@ public class AdminProductServiceImpl implements AdminProductService {
 
     @Override
     public void deleteCategory(Long categoryId) {
-        int count = productMapper.selectCount(new LambdaQueryWrapper<Product>().eq(Product::getCategoryId, categoryId));
+        long count = productMapper.selectCount(new LambdaQueryWrapper<Product>().eq(Product::getCategoryId, categoryId));
         if (count > 0) throw new BusinessException(400, "该分类下有商品，无法删除");
         categoryMapper.deleteById(categoryId);
     }
@@ -132,8 +132,8 @@ public class AdminProductServiceImpl implements AdminProductService {
     private void logStockChange(Long productId, Integer quantity, String reason) {
         StockLog log = new StockLog();
         log.setProductId(productId);
-        log.setQuantity(quantity);
-        log.setReason(reason);
+        log.setChangeQuantity(quantity);
+        log.setRemark(reason);
         log.setCreatedAt(LocalDateTime.now());
         stockLogMapper.insert(log);
     }

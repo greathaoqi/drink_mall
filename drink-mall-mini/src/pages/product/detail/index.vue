@@ -1,8 +1,11 @@
 <template>
   <view class="product-detail">
     <swiper class="swiper" indicator-dots autoplay circular>
-      <swiper-item v-for="(img, idx) in product.images?.split(',')" :key="idx">
-        <image :src="img" mode="aspectFill" class="swiper-img" />
+      <swiper-item v-for="(img, idx) in productImages" :key="idx">
+        <view class="swiper-visual">
+          <view class="hero-bottle"></view>
+          <text class="hero-label">{{ product.name || '演示商品' }}</text>
+        </view>
       </swiper-item>
     </swiper>
 
@@ -17,7 +20,7 @@
 
     <view class="detail-card">
       <view class="title">商品详情</view>
-      <rich-text :nodes="product.detail"></rich-text>
+      <rich-text :nodes="product.description"></rich-text>
     </view>
 
     <view class="bottom-bar">
@@ -40,30 +43,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onLoad } from '@dcloudio/uni-app'
-import request from '@/utils/request'
+import { computed, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { http } from '@/utils/request'
 
 const product = ref<any>({})
 const productId = ref(0)
 
+const productImages = computed(() => {
+  if (!product.value.images) return ['demo']
+  try {
+    const images = JSON.parse(product.value.images)
+    return Array.isArray(images) && images.length > 0 ? images : ['demo']
+  } catch {
+    const images = String(product.value.images).split(',').map((img: string) => img.trim()).filter(Boolean)
+    return images.length > 0 ? images : ['demo']
+  }
+})
+
 const loadProduct = async () => {
-  const res = await request.get(`/api/v1/product/${productId.value}`)
-  product.value = res.data || {}
+  const res = await http.get<any>(`/public/products/${productId.value}`, {}, { requireAuth: false })
+  if (res.code === 200) {
+    product.value = res.data || {}
+  }
 }
 
 const handleAddCart = async () => {
-  const token = uni.getStorageSync('token')
-  if (!token) {
+  const userStore = await import('@/store/user').then(m => m.useUserStore())
+  if (!userStore().isLoggedIn) {
     uni.navigateTo({ url: '/pages/login/index' })
     return
   }
-  await request.post('/api/v1/cart', { productId: productId.value, quantity: 1 })
+  await http.post('/cart', { productId: productId.value, quantity: 1 })
   uni.showToast({ title: '已加入购物车', icon: 'success' })
 }
 
-const handleBuyNow = () => {
-  handleAddCart()
-  uni.navigateTo({ url: '/pages/checkout/index?ids=' + productId.value })
+const handleBuyNow = async () => {
+  await handleAddCart()
+  uni.navigateTo({ url: '/pages/checkout/index' })
 }
 
 const goCart = () => {
@@ -79,7 +96,10 @@ onLoad((options: any) => {
 <style scoped>
 .product-detail { padding-bottom: 100rpx; }
 .swiper { height: 750rpx; }
-.swiper-img { width: 100%; height: 100%; }
+.swiper-visual { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at 65% 20%, #ffe6a5 0, transparent 30%), linear-gradient(145deg, #2a1608, #9b5927 56%, #e3b76d); color: #fff8e8; }
+.hero-bottle { width: 108rpx; height: 260rpx; border-radius: 48rpx 48rpx 18rpx 18rpx; background: rgba(255,255,255,0.18); box-shadow: inset 0 0 0 6rpx rgba(255,255,255,0.26); }
+.hero-bottle::before { content: ''; display: block; width: 46rpx; height: 72rpx; border-radius: 18rpx 18rpx 0 0; background: rgba(255,255,255,0.18); margin: -62rpx auto 0; }
+.hero-label { margin-top: 44rpx; font-size: 34rpx; font-weight: 800; max-width: 620rpx; text-align: center; }
 .info-card { background: #fff; padding: 30rpx; margin-bottom: 20rpx; }
 .price-row { display: flex; align-items: baseline; gap: 20rpx; }
 .price { font-size: 48rpx; color: #e93b3d; font-weight: bold; }

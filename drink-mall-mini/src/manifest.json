@@ -1,12 +1,12 @@
 {
   "name": "drink-mall",
-  "appid": "",
+  "appid": "wx8244ce9053ed2386",
   "description": "酒水商城",
   "versionName": "1.0.0",
   "versionCode": "100",
   "transformPx": false,
   "mp-weixin": {
-    "appid": "",
+    "appid": "wx8244ce9053ed2386",
     "setting": {
       "urlCheck": false,
       "es6": true,

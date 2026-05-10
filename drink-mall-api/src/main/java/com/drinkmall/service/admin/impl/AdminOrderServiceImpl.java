@@ -1,9 +1,11 @@
 package com.drinkmall.service.admin.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.BusinessException;
 import com.drinkmall.dto.OrderResponse;
+import com.drinkmall.dto.OrderItemResponse;
 import com.drinkmall.entity.Aftersale;
 import com.drinkmall.entity.Order;
 import com.drinkmall.entity.OrderItem;
@@ -34,7 +36,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     private final AddressMapper addressMapper;
 
     @Override
-    public Page<OrderResponse> getOrders(String status, String orderNo, Long userId, String startDate, String endDate, Integer page, Integer size) {
+    public IPage<OrderResponse> getOrders(String status, String orderNo, Long userId, String startDate, String endDate, Integer page, Integer size) {
         Page<Order> pageParam = new Page<>(page, size);
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
         if (status != null) wrapper.eq(Order::getStatus, status);

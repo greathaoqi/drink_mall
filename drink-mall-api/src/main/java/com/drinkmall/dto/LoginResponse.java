@@ -7,6 +7,7 @@ import lombok.Data;
 @Builder
 public class LoginResponse {
     private Long userId;
+    private String token;
     private String nickname;
     private String avatarUrl;
     private Boolean ageVerified;

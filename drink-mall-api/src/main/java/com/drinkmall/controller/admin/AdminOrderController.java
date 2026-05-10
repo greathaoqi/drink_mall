@@ -1,6 +1,7 @@
 package com.drinkmall.controller.admin;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.Result;
 import com.drinkmall.dto.OrderResponse;
@@ -22,7 +23,7 @@ public class AdminOrderController {
     private final AdminOrderService adminOrderService;
 
     @GetMapping("/list")
-    public Result<Page<OrderResponse>> getOrders(
+    public Result<IPage<OrderResponse>> getOrders(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String orderNo,
             @RequestParam(required = false) Long userId,

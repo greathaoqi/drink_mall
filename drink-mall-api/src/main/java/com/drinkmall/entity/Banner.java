@@ -19,10 +19,15 @@ public class Banner {
 
     private String linkValue;
 
+    private String location;
+
     private Integer sortOrder;
 
     private Integer status;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
+
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updatedAt;
 }

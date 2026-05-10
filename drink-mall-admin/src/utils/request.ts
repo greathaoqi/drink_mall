@@ -6,6 +6,17 @@ const request = axios.create({
   timeout: 10000
 })
 
+request.interceptors.request.use(
+  config => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers['Authorization'] = token
+    }
+    return config
+  },
+  error => Promise.reject(error)
+)
+
 request.interceptors.response.use(
   response => {
     const res = response.data
@@ -16,6 +27,11 @@ request.interceptors.response.use(
     return res
   },
   error => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('adminUser')
+      window.location.href = '/login'
+    }
     ElMessage.error(error.message || '网络错误')
     return Promise.reject(error)
   }

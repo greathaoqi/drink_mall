@@ -3,7 +3,7 @@
     <view class="age-verify-modal">
       <view class="modal-title">年龄确认</view>
       <view class="modal-content">
-        <image class="warning-icon" src="/static/icons/18+.png" mode="aspectFit" />
+        <view class="warning-icon">18+</view>
         <text class="warning-text">
           根据国家相关法律法规，未成年人禁止购买酒类商品。
           请确认您已年满18周岁。
@@ -90,6 +90,14 @@ function handleCancel() {
 .warning-icon {
   width: 120rpx;
   height: 120rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b1f0d, #c06f2b);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  font-weight: 800;
   margin-bottom: 24rpx;
 }
 

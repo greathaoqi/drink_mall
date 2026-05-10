@@ -39,7 +39,7 @@ public class AdminSystemServiceImpl implements AdminSystemService {
         if (adminUserMapper.selectCount(new LambdaQueryWrapper<AdminUser>().eq(AdminUser::getUsername, adminUser.getUsername())) > 0) {
             throw new BusinessException(400, "用户名已存在");
         }
-        adminUser.setPassword(SecureUtil.md5(adminUser.getPassword()));
+        adminUser.setPasswordHash(SecureUtil.md5(adminUser.getPasswordHash()));
         adminUser.setCreatedAt(LocalDateTime.now());
         adminUserMapper.insert(adminUser);
         return adminUser;
@@ -49,10 +49,10 @@ public class AdminSystemServiceImpl implements AdminSystemService {
     public AdminUser updateAdminUser(AdminUser adminUser) {
         AdminUser existing = adminUserMapper.selectById(adminUser.getId());
         if (existing == null) throw new BusinessException(404, "用户不存在");
-        if (adminUser.getPassword() != null && !adminUser.getPassword().isEmpty()) {
-            adminUser.setPassword(SecureUtil.md5(adminUser.getPassword()));
+        if (adminUser.getPasswordHash() != null && !adminUser.getPasswordHash().isEmpty()) {
+            adminUser.setPasswordHash(SecureUtil.md5(adminUser.getPasswordHash()));
         } else {
-            adminUser.setPassword(existing.getPassword());
+            adminUser.setPasswordHash(existing.getPasswordHash());
         }
         adminUser.setUpdatedAt(LocalDateTime.now());
         adminUserMapper.updateById(adminUser);

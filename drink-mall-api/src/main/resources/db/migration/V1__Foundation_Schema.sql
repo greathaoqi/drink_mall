@@ -46,7 +46,7 @@ CREATE TABLE categories (
     FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL,
     INDEX idx_parent (parent_id),
     INDEX idx_sort (sort_order)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Product categories';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Product categories';
 
 -- Products table (guest browsing support)
 CREATE TABLE products (
@@ -70,7 +70,7 @@ CREATE TABLE products (
     INDEX idx_category (category_id),
     INDEX idx_zone (zone_type),
     INDEX idx_status_sort (status, sort_order)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Products';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Products';
 
 -- Banners table (homepage display)
 CREATE TABLE banners (
@@ -83,7 +83,7 @@ CREATE TABLE banners (
     status TINYINT DEFAULT 1 COMMENT 'Status: 1=active, 0=disabled',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_status_sort (status, sort_order)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Homepage banners';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Homepage banners';
 
 -- Seed data: Categories (per D-17)
 INSERT INTO categories (id, parent_id, name, icon_url, sort_order, status) VALUES
@@ -111,4 +111,4 @@ INSERT INTO banners (title, image_url, link_type, link_value, sort_order, status
 
 -- Seed data: Default admin user (per D-16)
 INSERT INTO admin_users (username, password_hash, name, role, status) VALUES
-('admin', 'admin123', '系统管理员', 'admin', 1);
+('admin', '0192023a7bbd73250516f069df18b500', '系统管理员', 'admin', 1);

@@ -1,16 +1,15 @@
 <template>
   <view class="profile-page">
     <view v-if="!userStore.isLoggedIn" class="guest-section">
-      <image class="guest-avatar" src="/static/icons/default-avatar.png" />
+      <view class="guest-avatar">酒</view>
       <text class="guest-text">未登录</text>
-      <u-button type="primary" shape="circle" color="#07C160" @click="showLoginPrompt = true">
-        立即登录
-      </u-button>
+      <button class="demo-login-btn" :loading="demoLoading" @click="handleDemoLogin">演示登录（余额9999元）</button>
+      <button class="wechat-login-btn" @click="handleLogin">微信登录</button>
     </view>
 
     <view v-else class="user-section">
       <view class="user-info">
-        <image class="avatar" :src="userStore.userInfo?.avatarUrl || '/static/icons/default-avatar.png'" />
+        <view class="avatar">酒</view>
         <view class="user-detail">
           <text class="nickname">{{ userStore.userInfo?.nickname || '微信用户' }}</text>
           <view class="status-row">
@@ -62,38 +61,49 @@
         </view>
       </view>
     </view>
-
-    <LoginPrompt :show="showLoginPrompt" message="登录后可查看个人中心和订单" @close="showLoginPrompt = false" @login="handleLogin" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useUserStore } from '@/store/user'
-import LoginPrompt from '@/components/LoginPrompt/LoginPrompt.vue'
+import { demoLogin } from '@/services/auth'
 
 const userStore = useUserStore()
-const showLoginPrompt = ref(false)
+const demoLoading = ref(false)
 
 function handleLogin() {
-  showLoginPrompt.value = false
   uni.navigateTo({ url: '/pages/login/index' })
 }
 
+async function handleDemoLogin() {
+  demoLoading.value = true
+  try {
+    const result = await demoLogin()
+    if (result) {
+      uni.showToast({ title: '演示登录成功', icon: 'success' })
+    } else {
+      uni.showToast({ title: '请确认后端已启动', icon: 'none' })
+    }
+  } finally {
+    demoLoading.value = false
+  }
+}
+
 function navigateToBalance() {
-  uni.showToast({ title: '功能开发中', icon: 'none' })
+  uni.navigateTo({ url: '/pages/order/list/index' })
 }
 
 function navigateToPoints() {
-  uni.showToast({ title: '功能开发中', icon: 'none' })
+  uni.navigateTo({ url: '/pages/points/index' })
 }
 
 function navigateToHelp() {
-  uni.showToast({ title: '功能开发中', icon: 'none' })
+  uni.navigateTo({ url: '/pages/help/index' })
 }
 
 function navigateToOrders(status: string) {
-  uni.showToast({ title: '功能开发中', icon: 'none' })
+  uni.navigateTo({ url: `/pages/order/list/index?status=${status}` })
 }
 </script>
 
@@ -116,12 +126,47 @@ function navigateToOrders(status: string) {
   height: 160rpx;
   border-radius: 50%;
   margin-bottom: 24rpx;
+  background: linear-gradient(135deg, #2f1909, #a4622b);
+  color: #fff6de;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72rpx;
+  font-weight: 800;
 }
 
 .guest-text {
   font-size: 32rpx;
   color: #999999;
   margin-bottom: 32rpx;
+}
+
+.demo-login-btn {
+  width: 420rpx;
+  height: 84rpx;
+  line-height: 84rpx;
+  border-radius: 999rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #8B5A2B, #C97931);
+  font-size: 30rpx;
+  font-weight: 700;
+  border: none;
+}
+
+.demo-login-btn::after,
+.wechat-login-btn::after {
+  border: none;
+}
+
+.wechat-login-btn {
+  width: 420rpx;
+  height: 76rpx;
+  line-height: 76rpx;
+  margin-top: 20rpx;
+  border-radius: 999rpx;
+  color: #6b4a28;
+  background: #fff6e8;
+  font-size: 28rpx;
 }
 
 .user-section {
@@ -140,6 +185,13 @@ function navigateToOrders(status: string) {
   height: 120rpx;
   border-radius: 50%;
   margin-right: 24rpx;
+  background: linear-gradient(135deg, #2f1909, #a4622b);
+  color: #fff6de;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52rpx;
+  font-weight: 800;
 }
 
 .user-detail {

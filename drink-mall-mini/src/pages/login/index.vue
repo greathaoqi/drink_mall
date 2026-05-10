@@ -1,7 +1,7 @@
 <template>
   <view class="login-page">
     <view class="logo-section">
-      <image class="logo" src="/static/logo.png" mode="aspectFit" />
+      <view class="logo">酒</view>
       <text class="app-name">酒水商城</text>
       <text class="app-slogan">精选美酒，品质生活</text>
     </view>
@@ -14,6 +14,10 @@
         <text class="login-text">微信登录</text>
       </u-button>
 
+      <u-button shape="circle" :loading="demoLoading" @click="handleDemoLogin" color="#8B5A2B" customStyle="margin-top: 24rpx; width: 100%">
+        <text class="login-text">演示登录（余额9999元）</text>
+      </u-button>
+
       <view class="tips">
         <text class="tip-text">登录即表示您已阅读并同意相关协议</text>
       </view>
@@ -24,7 +28,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import AgreementBox from '@/components/AgreementBox/AgreementBox.vue'
-import { wechatLogin } from '@/services/auth'
+import { demoLogin, wechatLogin } from '@/services/auth'
 
 const agreementRef = ref()
 const agreements = ref({
@@ -32,6 +36,7 @@ const agreements = ref({
   privacyPolicy: false
 })
 const loading = ref(false)
+const demoLoading = ref(false)
 
 const canLogin = computed(() => {
   return agreements.value.userAgreement && agreements.value.privacyPolicy
@@ -72,6 +77,21 @@ async function handleLogin() {
     loading.value = false
   }
 }
+
+async function handleDemoLogin() {
+  demoLoading.value = true
+  try {
+    const result = await demoLogin()
+    if (result) {
+      uni.showToast({ title: '已进入演示账号', icon: 'success' })
+      uni.switchTab({ url: '/pages/index/index' })
+    } else {
+      uni.showToast({ title: '演示登录失败', icon: 'none' })
+    }
+  } finally {
+    demoLoading.value = false
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -94,6 +114,14 @@ async function handleLogin() {
 .logo {
   width: 160rpx;
   height: 160rpx;
+  border-radius: 48rpx;
+  background: linear-gradient(135deg, #2f1909, #a4622b);
+  color: #fff6de;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72rpx;
+  font-weight: 800;
   margin-bottom: 32rpx;
 }
 

@@ -1,5 +1,8 @@
 <script lang="ts">
 export default {
+  globalData: {
+    productListCategoryId: null as number | null
+  },
   onLaunch() {
     console.log('App Launch')
   },

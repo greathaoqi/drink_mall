@@ -56,7 +56,7 @@ public class PayController {
             PointsLog log = new PointsLog();
             log.setUserId(user.getId());
             log.setPoints(points);
-            log.setType("purchase");
+            log.setChangeType("purchase");
             log.setRemark("订单" + order.getOrderNo() + "获得积分");
             log.setCreatedAt(LocalDateTime.now());
             pointsLogMapper.insert(log);

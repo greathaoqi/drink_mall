@@ -36,7 +36,7 @@ const handleSubmit = async () => {
     return
   }
   form.value.type = types[typeIndex.value].value
-  await request.post('/api/v1/aftersale', form.value)
+  await request.post('/aftersale', form.value)
   uni.showToast({ title: '提交成功', icon: 'success' })
   setTimeout(() => uni.navigateBack(), 1000)
 }

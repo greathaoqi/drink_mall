@@ -1,10 +1,10 @@
 <template>
   <view class="address-list">
-    <view v-for="addr in addresses" :key="addr.addressId" class="address-card" @click="selectAddress(addr)">
+    <view v-for="addr in addresses" :key="addr.id" class="address-card" @click="selectAddress(addr)">
       <view class="info">
         <view class="receiver">
-          <text class="name">{{ addr.receiverName }}</text>
-          <text class="phone">{{ addr.receiverPhone }}</text>
+          <text class="name">{{ addr.name }}</text>
+          <text class="phone">{{ addr.phone }}</text>
           <text v-if="addr.isDefault" class="default-tag">默认</text>
         </view>
         <view class="address">{{ addr.province }}{{ addr.city }}{{ addr.district }}{{ addr.detail }}</view>
@@ -13,10 +13,10 @@
         <view class="action-btn" @click.stop="setDefault(addr)" v-if="!addr.isDefault">
           <uni-icons type="checkbox" size="20" />设为默认
         </view>
-        <view class="action-btn" @click.stop="editAddress(addr.addressId)">
+        <view class="action-btn" @click.stop="editAddress(addr.id)">
           <uni-icons type="compose" size="20" />编辑
         </view>
-        <view class="action-btn" @click.stop="deleteAddress(addr.addressId)">
+        <view class="action-btn" @click.stop="deleteAddress(addr.id)">
           <uni-icons type="trash" size="20" />删除
         </view>
       </view>
@@ -42,7 +42,7 @@ const addresses = ref<any[]>([])
 const isSelect = ref(false)
 
 const loadAddresses = async () => {
-  const res = await request.get('/api/v1/address')
+  const res = await request.get('/address')
   addresses.value = res.data || []
 }
 
@@ -58,7 +58,7 @@ const selectAddress = (addr: any) => {
 }
 
 const setDefault = async (addr: any) => {
-  await request.put(`/api/v1/address/${addr.addressId}/default`)
+    await request.put(`/address/${addr.id}/default`)
   loadAddresses()
 }
 
@@ -69,7 +69,7 @@ const editAddress = (id: number) => {
 const deleteAddress = async (id: number) => {
   uni.showModal({ title: '提示', content: '确定删除此地址?', success: async (res) => {
     if (res.confirm) {
-      await request.delete(`/api/v1/address/${id}`)
+      await request.delete(`/address/${id}`)
       loadAddresses()
     }
   }})

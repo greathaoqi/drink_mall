@@ -23,6 +23,8 @@ public class User {
 
     private BigDecimal balance;
 
+    private BigDecimal frozenBalance;
+
     private Integer points;
 
     @TableField("age_verified")

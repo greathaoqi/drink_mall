@@ -3,11 +3,11 @@
     <view class="form-card">
       <view class="form-item">
         <text class="label">收货人</text>
-        <input v-model="form.receiverName" placeholder="请输入姓名" />
+        <input v-model="form.name" placeholder="请输入姓名" />
       </view>
       <view class="form-item">
         <text class="label">手机号</text>
-        <input v-model="form.receiverPhone" placeholder="请输入手机号" type="number" />
+        <input v-model="form.phone" placeholder="请输入手机号" type="number" />
       </view>
       <view class="form-item">
         <text class="label">所在地区</text>
@@ -34,7 +34,7 @@ import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import request from '@/utils/request'
 
-const form = ref({ receiverName: '', receiverPhone: '', province: '', city: '', district: '', detail: '', isDefault: false })
+const form = ref({ name: '', phone: '', province: '', city: '', district: '', detail: '', isDefault: false })
 const region = ref<string[]>([])
 const isEdit = ref(false)
 const addressId = ref(0)
@@ -49,20 +49,20 @@ const onRegionChange = (e: any) => {
 }
 
 const loadAddress = async () => {
-  const res = await request.get(`/api/v1/address/${addressId.value}`)
+  const res = await request.get(`/address/${addressId.value}`)
   Object.assign(form.value, res.data)
   region.value = [form.value.province, form.value.city, form.value.district]
 }
 
 const handleSave = async () => {
-  if (!form.value.receiverName || !form.value.receiverPhone || !form.value.detail) {
+  if (!form.value.name || !form.value.phone || !form.value.detail) {
     uni.showToast({ title: '请填写完整信息', icon: 'none' })
     return
   }
   if (isEdit.value) {
-    await request.put(`/api/v1/address/${addressId.value}`, form.value)
+    await request.put(`/address/${addressId.value}`, form.value)
   } else {
-    await request.post('/api/v1/address', form.value)
+    await request.post('/address', form.value)
   }
   uni.showToast({ title: '保存成功', icon: 'success' })
   setTimeout(() => uni.navigateBack(), 1000)

@@ -13,7 +13,7 @@
           <text :class="['status', order.status]">{{ statusText(order.status) }}</text>
         </view>
         <view v-for="item in order.items" :key="item.itemId" class="order-item">
-          <image :src="item.productImage" class="item-img" />
+          <view class="item-img"><view class="mini-bottle"></view></view>
           <view class="item-info">
             <text class="item-name">{{ item.productName }}</text>
             <text class="item-price">¥{{ item.price }} x {{ item.quantity }}</text>
@@ -65,7 +65,7 @@ const loadOrders = async () => {
 const loadMore = async () => {
   if (!hasMore.value) return
   loadStatus.value = 'loading'
-  const res = await request.get('/api/v1/order', { params: { status: activeTab.value, page: page.value } })
+  const res = await request.get('/order', { params: { status: activeTab.value, page: page.value } })
   const newOrders = res.data?.records || []
   orders.value = [...orders.value, ...newOrders]
   hasMore.value = newOrders.length >= 10
@@ -95,7 +95,9 @@ onShow(() => loadOrders())
 .status.shipped { color: #52c41a; }
 .status.completed { color: #999; }
 .order-item { display: flex; padding: 20rpx; }
-.item-img { width: 160rpx; height: 160rpx; border-radius: 8rpx; }
+.item-img { width: 160rpx; height: 160rpx; border-radius: 12rpx; background: linear-gradient(135deg, #f7dfb4, #9a5c27); display: flex; align-items: center; justify-content: center; }
+.mini-bottle { width: 34rpx; height: 82rpx; border-radius: 16rpx 16rpx 8rpx 8rpx; background: #4d2a13; }
+.mini-bottle::before { content: ''; display: block; width: 16rpx; height: 24rpx; border-radius: 8rpx 8rpx 0 0; background: #4d2a13; margin: -20rpx auto 0; }
 .item-info { flex: 1; margin-left: 20rpx; }
 .item-name { font-size: 28rpx; display: block; }
 .item-price { font-size: 24rpx; color: #999; margin-top: 10rpx; display: block; }

@@ -3,6 +3,7 @@ package com.drinkmall.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.BusinessException;
 import com.drinkmall.dto.*;
@@ -31,6 +32,8 @@ public class OrderServiceImpl implements OrderService {
     private final ProductMapper productMapper;
     private final AddressMapper addressMapper;
     private final UserService userService;
+    private final UserMapper userMapper;
+    private final BalanceLogMapper balanceLogMapper;
 
     @Override
     @Transactional
@@ -95,7 +98,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Page<OrderResponse> getOrders(Long userId, String status, Integer page, Integer size) {
+    public IPage<OrderResponse> getOrders(Long userId, String status, Integer page, Integer size) {
         Page<Order> pageParam = new Page<>(page, size);
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<Order>()
                 .eq(Order::getUserId, userId);
@@ -195,6 +198,57 @@ public class OrderServiceImpl implements OrderService {
         order.setPaymentMethod("wechat");
         order.setPaymentTime(LocalDateTime.now());
         orderMapper.updateById(order);
+    }
+
+    @Override
+    @Transactional
+    public PayResponse payOrderByBalance(Long userId, Long orderId) {
+        Order order = orderMapper.selectOne(
+                new LambdaQueryWrapper<Order>()
+                        .eq(Order::getId, orderId)
+                        .eq(Order::getUserId, userId)
+        );
+        if (order == null) {
+            throw new BusinessException(404, "订单不存在");
+        }
+        if (!"pending".equals(order.getStatus())) {
+            throw new BusinessException(400, "订单状态不正确");
+        }
+
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
+        BigDecimal beforeBalance = user.getBalance() == null ? BigDecimal.ZERO : user.getBalance();
+        if (beforeBalance.compareTo(order.getPayAmount()) < 0) {
+            throw new BusinessException(400, "余额不足");
+        }
+
+        BigDecimal afterBalance = beforeBalance.subtract(order.getPayAmount());
+        user.setBalance(afterBalance);
+        userMapper.updateById(user);
+
+        order.setStatus("paid");
+        order.setPaymentMethod("balance");
+        order.setPaymentNo("BAL" + IdUtil.getSnowflakeNextIdStr());
+        order.setPaymentTime(LocalDateTime.now());
+        orderMapper.updateById(order);
+
+        BalanceLog log = new BalanceLog();
+        log.setUserId(userId);
+        log.setChangeType("payment");
+        log.setAmount(order.getPayAmount().negate());
+        log.setBeforeBalance(beforeBalance);
+        log.setAfterBalance(afterBalance);
+        log.setOrderId(order.getId());
+        log.setRemark("余额支付订单 " + order.getOrderNo());
+        log.setCreatedAt(LocalDateTime.now());
+        balanceLogMapper.insert(log);
+
+        return PayResponse.builder()
+                .orderNo(order.getOrderNo())
+                .prepayId(order.getPaymentNo())
+                .build();
     }
 
     @Override

@@ -20,6 +20,8 @@ public class Order {
     private String paymentNo;
     private LocalDateTime paymentTime;
     private LocalDateTime shipTime;
+    private String logisticsCompany;
+    private String logisticsNo;
     private LocalDateTime completeTime;
     private LocalDateTime cancelTime;
     private String cancelReason;

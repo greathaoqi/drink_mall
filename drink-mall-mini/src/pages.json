@@ -1,7 +1,7 @@
 {
   "pages": [
     { "path": "pages/index/index", "style": { "navigationBarTitleText": "首页" } },
-    { "path": "pages/product/list", "style": { "navigationBarTitleText": "商品" } },
+    { "path": "pages/product/list", "style": { "navigationBarTitleText": "商品", "enablePullDownRefresh": true } },
     { "path": "pages/product/detail/index", "style": { "navigationBarTitleText": "商品详情" } },
     { "path": "pages/cart/index", "style": { "navigationBarTitleText": "购物车" } },
     { "path": "pages/checkout/index", "style": { "navigationBarTitleText": "确认订单" } },

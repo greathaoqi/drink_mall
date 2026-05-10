@@ -2,7 +2,7 @@ package com.drinkmall.controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.stp.StpUtil;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.drinkmall.common.Result;
 import com.drinkmall.dto.*;
 import com.drinkmall.entity.Order;
@@ -27,7 +27,7 @@ public class OrderController {
 
     @GetMapping
     @SaCheckLogin
-    public Result<Page<OrderResponse>> getOrders(
+    public Result<IPage<OrderResponse>> getOrders(
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
@@ -62,7 +62,13 @@ public class OrderController {
     @SaCheckLogin
     public Result<PayResponse> payOrder(@PathVariable Long orderId) {
         Long userId = StpUtil.getLoginIdAsLong();
-        orderService.payOrder(userId, orderId);
         return Result.success(orderService.getPayParams(userId, orderId));
+    }
+
+    @PostMapping("/{orderId}/balance-pay")
+    @SaCheckLogin
+    public Result<PayResponse> payOrderByBalance(@PathVariable Long orderId) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        return Result.success(orderService.payOrderByBalance(userId, orderId));
     }
 }

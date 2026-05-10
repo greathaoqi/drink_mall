@@ -2,7 +2,14 @@
   <view class="home-page">
     <swiper class="banner-swiper" :indicator-dots="true" :autoplay="true" :interval="3000" :duration="500" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#FFFFFF">
       <swiper-item v-for="banner in banners" :key="banner.id">
-        <image class="banner-image" :src="banner.imageUrl" mode="aspectFill" @click="handleBannerClick(banner)" />
+        <view class="banner-card" @click="handleBannerClick(banner)">
+          <view class="banner-copy">
+            <text class="banner-kicker">DEMO CELLAR</text>
+            <text class="banner-title">{{ banner.title || '余额支付完整演示' }}</text>
+            <text class="banner-desc">浏览、加购、下单、支付，一次走通</text>
+          </view>
+          <view class="bottle-shape"></view>
+        </view>
       </swiper-item>
     </swiper>
 
@@ -12,7 +19,7 @@
       </view>
       <view class="category-grid">
         <view class="category-item" v-for="category in categories" :key="category.id" @click="navigateToCategory(category)">
-          <image class="category-icon" :src="category.iconUrl || '/static/icons/default-category.png'" />
+          <view class="category-icon">{{ category.name.slice(0, 1) }}</view>
           <text class="category-name">{{ category.name }}</text>
         </view>
       </view>
@@ -25,7 +32,10 @@
       </view>
       <view class="product-grid">
         <view class="product-card" v-for="product in products" :key="product.id" @click="navigateToProductDetail(product)">
-          <image class="product-image" :src="product.mainImage" mode="aspectFill" />
+          <view class="product-image">
+            <view class="product-bottle"></view>
+            <text class="product-tag">酒水精选</text>
+          </view>
           <text class="product-name">{{ product.name }}</text>
           <text class="product-price">¥{{ product.price }}</text>
         </view>
@@ -35,10 +45,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { http } from '@/utils/request'
 
-interface Banner { id: number; imageUrl: string; linkType: string; linkValue: string }
+interface Banner { id: number; title: string; imageUrl: string; linkType: string; linkValue: string }
 interface Category { id: number; name: string; iconUrl: string }
 interface Product { id: number; name: string; mainImage: string; price: number }
 
@@ -46,19 +57,19 @@ const banners = ref<Banner[]>([])
 const categories = ref<Category[]>([])
 const products = ref<Product[]>([])
 
-onMounted(() => {
+onShow(() => {
   loadPublicContent()
 })
 
 async function loadPublicContent() {
   try {
-    const bannerRes = await http.get<Banner[]>('/public/banners')
+    const bannerRes = await http.get<Banner[]>('/public/banners', {}, { requireAuth: false })
     if (bannerRes.code === 200) banners.value = bannerRes.data
 
-    const categoryRes = await http.get<Category[]>('/public/categories')
+    const categoryRes = await http.get<Category[]>('/public/categories', {}, { requireAuth: false })
     if (categoryRes.code === 200) categories.value = categoryRes.data
 
-    const productRes = await http.get<{ records: Product[] }>('/public/products', { pageSize: 4 })
+    const productRes = await http.get<{ records: Product[] }>('/public/products', { pageSize: 4 }, { requireAuth: false })
     if (productRes.code === 200) products.value = productRes.data.records || productRes.data
   } catch (error) {
     console.error('Failed to load public content:', error)
@@ -67,14 +78,18 @@ async function loadPublicContent() {
 
 function handleBannerClick(banner: Banner) {
   if (banner.linkType === 'product' && banner.linkValue) {
-    uni.navigateTo({ url: `/pages/product/detail?id=${banner.linkValue}` })
+    uni.navigateTo({ url: `/pages/product/detail/index?id=${banner.linkValue}` })
   } else if (banner.linkType === 'category' && banner.linkValue) {
-    uni.navigateTo({ url: `/pages/product/list?categoryId=${banner.linkValue}` })
+    const app = getApp()
+    app.globalData.productListCategoryId = Number(banner.linkValue)
+    uni.switchTab({ url: '/pages/product/list' })
   }
 }
 
 function navigateToCategory(category: Category) {
-  uni.navigateTo({ url: `/pages/product/list?categoryId=${category.id}` })
+  const app = getApp()
+  app.globalData.productListCategoryId = category.id
+  uni.switchTab({ url: '/pages/product/list' })
 }
 
 function navigateToProducts() {
@@ -82,7 +97,7 @@ function navigateToProducts() {
 }
 
 function navigateToProductDetail(product: Product) {
-  uni.navigateTo({ url: `/pages/product/detail?id=${product.id}` })
+  uni.navigateTo({ url: `/pages/product/detail/index?id=${product.id}` })
 }
 </script>
 
@@ -97,10 +112,22 @@ function navigateToProductDetail(product: Product) {
   height: 320rpx;
 }
 
-.banner-image {
-  width: 100%;
+.banner-card {
   height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 42rpx;
+  background: linear-gradient(135deg, #2b1608 0%, #8a4f22 48%, #e2b15f 100%);
+  overflow: hidden;
 }
+
+.banner-copy { display: flex; flex-direction: column; color: #fff7e6; position: relative; z-index: 1; }
+.banner-kicker { font-size: 22rpx; letter-spacing: 4rpx; opacity: 0.8; }
+.banner-title { margin-top: 18rpx; font-size: 42rpx; font-weight: 800; }
+.banner-desc { margin-top: 14rpx; font-size: 24rpx; opacity: 0.82; }
+.bottle-shape { width: 120rpx; height: 210rpx; border-radius: 52rpx 52rpx 18rpx 18rpx; background: rgba(255,255,255,0.18); box-shadow: inset 0 0 0 4rpx rgba(255,255,255,0.3); position: relative; }
+.bottle-shape::before { content: ''; position: absolute; top: -52rpx; left: 36rpx; width: 48rpx; height: 70rpx; border-radius: 18rpx 18rpx 0 0; background: rgba(255,255,255,0.18); }
 
 .section {
   background: #FFFFFF;
@@ -144,6 +171,14 @@ function navigateToProductDetail(product: Product) {
   width: 88rpx;
   height: 88rpx;
   margin-bottom: 12rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, #fff0d6, #8b5a2b);
+  color: #4b2d14;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34rpx;
+  font-weight: 800;
 }
 
 .category-name {
@@ -167,7 +202,15 @@ function navigateToProductDetail(product: Product) {
 .product-image {
   width: 100%;
   height: 280rpx;
+  background: radial-gradient(circle at 70% 20%, #ffe4a8 0, transparent 30%), linear-gradient(135deg, #faf2df, #d9a65d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
+.product-bottle { width: 62rpx; height: 156rpx; border-radius: 28rpx 28rpx 12rpx 12rpx; background: #5b2f14; box-shadow: inset 0 0 0 8rpx rgba(255,255,255,0.12); }
+.product-bottle::before { content: ''; display: block; width: 28rpx; height: 48rpx; border-radius: 12rpx 12rpx 0 0; background: #5b2f14; margin: -42rpx auto 0; }
+.product-tag { position: absolute; left: 18rpx; bottom: 16rpx; font-size: 22rpx; color: #704118; background: rgba(255,255,255,0.72); border-radius: 999rpx; padding: 4rpx 14rpx; }
 
 .product-name {
   display: block;

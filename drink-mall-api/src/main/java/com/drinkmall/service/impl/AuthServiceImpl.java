@@ -64,6 +64,7 @@ public class AuthServiceImpl implements AuthService {
 
             return LoginResponse.builder()
                     .userId(user.getId())
+                    .token(StpUtil.getTokenValue())
                     .nickname(user.getNickname())
                     .avatarUrl(user.getAvatarUrl())
                     .ageVerified(user.getAgeVerified())
@@ -74,6 +75,40 @@ public class AuthServiceImpl implements AuthService {
             log.error("WeChat login failed: {}", e.getMessage());
             throw new BusinessException(500, "微信登录失败: " + e.getMessage());
         }
+    }
+
+    @Override
+    @Transactional
+    public LoginResponse demoLogin() {
+        User user = userMapper.selectOne(
+                new LambdaQueryWrapper<User>().eq(User::getOpenid, "demo-openid")
+        );
+        if (user == null) {
+            user = new User();
+            user.setOpenid("demo-openid");
+            user.setNickname("演示用户");
+            user.setAvatarUrl("https://img.yzcdn.cn/vant/cat.jpeg");
+            user.setPhone("13800138000");
+            user.setBalance(new BigDecimal("9999.00"));
+            user.setFrozenBalance(BigDecimal.ZERO);
+            user.setPoints(1888);
+            user.setAgeVerified(true);
+            user.setAgeVerifiedAt(LocalDateTime.now());
+            user.setStatus(1);
+            user.setCreatedAt(LocalDateTime.now());
+            user.setUpdatedAt(LocalDateTime.now());
+            userMapper.insert(user);
+        }
+
+        StpUtil.login(user.getId());
+        return LoginResponse.builder()
+                .userId(user.getId())
+                .token(StpUtil.getTokenValue())
+                .nickname(user.getNickname())
+                .avatarUrl(user.getAvatarUrl())
+                .ageVerified(user.getAgeVerified())
+                .isNewUser(false)
+                .build();
     }
 
     @Override

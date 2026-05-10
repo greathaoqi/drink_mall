@@ -19,7 +19,7 @@ import request from '@/utils/request'
 const articles = ref<any[]>([])
 
 const loadArticles = async () => {
-  const res = await request.get('/api/v1/content/help')
+  const res = await request.get('/content/help')
   articles.value = res.data || []
 }
 

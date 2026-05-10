@@ -25,6 +25,11 @@ public class AuthController {
         return Result.success(response);
     }
 
+    @PostMapping("/demo-login")
+    public Result<LoginResponse> demoLogin() {
+        return Result.success(authService.demoLogin());
+    }
+
     @PostMapping("/logout")
     public Result<Void> logout() {
         authService.logout();

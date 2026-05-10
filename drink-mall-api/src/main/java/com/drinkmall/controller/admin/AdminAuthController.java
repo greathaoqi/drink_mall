@@ -10,6 +10,9 @@ import com.drinkmall.mapper.AdminUserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/admin/auth")
 @RequiredArgsConstructor
@@ -18,19 +21,22 @@ public class AdminAuthController {
     private final AdminUserMapper adminUserMapper;
 
     @PostMapping("/login")
-    public Result<AdminUser> login(@RequestBody AdminUser loginRequest) {
+    public Result<Map<String, Object>> login(@RequestBody AdminUser loginRequest) {
         AdminUser adminUser = adminUserMapper.selectOne(
             new LambdaQueryWrapper<AdminUser>().eq(AdminUser::getUsername, loginRequest.getUsername())
         );
-        if (adminUser == null || !adminUser.getPassword().equals(SecureUtil.md5(loginRequest.getPassword()))) {
+        if (adminUser == null || !adminUser.getPasswordHash().equals(SecureUtil.md5(loginRequest.getPasswordHash()))) {
             return Result.error(401, "用户名或密码错误");
         }
         if (adminUser.getStatus() != 1) {
             return Result.error(403, "账号已被禁用");
         }
-        StpUtil.login(adminUser.getId());
+        StpUtil.login("admin:" + adminUser.getId());
         StpUtil.getSession().set("adminUser", adminUser);
-        return Result.success(adminUser);
+        Map<String, Object> data = new HashMap<>();
+        data.put("token", StpUtil.getTokenValue());
+        data.put("adminUser", adminUser);
+        return Result.success(data);
     }
 
     @PostMapping("/logout")
@@ -42,7 +48,8 @@ public class AdminAuthController {
     @GetMapping("/info")
     @SaCheckRole("admin")
     public Result<AdminUser> getInfo() {
-        Long userId = StpUtil.getLoginIdAsLong();
+        String loginId = String.valueOf(StpUtil.getLoginId());
+        Long userId = Long.valueOf(loginId.substring("admin:".length()));
         AdminUser adminUser = adminUserMapper.selectById(userId);
         return Result.success(adminUser);
     }

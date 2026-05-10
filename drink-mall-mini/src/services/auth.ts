@@ -3,6 +3,7 @@ import { useUserStore, type UserInfo } from '@/store/user'
 
 interface LoginResponse {
   userId: number
+  token: string
   nickname: string
   avatarUrl: string
   ageVerified: boolean
@@ -22,12 +23,13 @@ export async function wechatLogin(agreements: {
             code: loginRes.code,
             userAgreement: agreements.userAgreement,
             privacyPolicy: agreements.privacyPolicy
-          })
+          }, { requireAuth: false })
 
           if (response.code === 200 && response.data) {
             const userStore = useUserStore()
             userStore.setUser({
               userId: response.data.userId,
+              token: response.data.token,
               nickname: response.data.nickname || '',
               avatarUrl: response.data.avatarUrl || '',
               ageVerified: response.data.ageVerified || false,
@@ -51,6 +53,30 @@ export async function wechatLogin(agreements: {
   })
 }
 
+export async function demoLogin(): Promise<LoginResponse | null> {
+  try {
+    const response = await http.post<LoginResponse>('/auth/demo-login', {}, { requireAuth: false })
+    if (response.code === 200 && response.data) {
+      const userStore = useUserStore()
+      userStore.setUser({
+        userId: response.data.userId,
+        token: response.data.token,
+        nickname: response.data.nickname || '演示用户',
+        avatarUrl: response.data.avatarUrl || '',
+        ageVerified: response.data.ageVerified || true,
+        balance: 9999,
+        points: 1888
+      })
+      await checkAuth()
+      return response.data
+    }
+    return null
+  } catch (error) {
+    console.error('Demo login failed:', error)
+    return null
+  }
+}
+
 export async function logout(): Promise<void> {
   try {
     await http.post('/auth/logout')
@@ -67,7 +93,7 @@ export async function checkAuth(): Promise<UserInfo | null> {
     const response = await http.get<UserInfo>('/auth/check')
     if (response.code === 200 && response.data) {
       const userStore = useUserStore()
-      userStore.setUser(response.data)
+      userStore.setUser({ ...response.data, token: userStore.token })
       return response.data
     }
     return null

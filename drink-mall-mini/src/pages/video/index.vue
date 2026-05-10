@@ -36,7 +36,7 @@ const formatDuration = (seconds: number) => {
 
 const loadVideos = async () => {
   loadStatus.value = 'loading'
-  const res = await request.get('/api/v1/content/videos', { params: { page: page.value } })
+  const res = await request.get('/content/videos', { params: { page: page.value } })
   const newVideos = res.data?.records || []
   videos.value = [...videos.value, ...newVideos]
   hasMore.value = newVideos.length >= 10

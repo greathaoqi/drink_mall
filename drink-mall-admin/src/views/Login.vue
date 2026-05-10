@@ -9,26 +9,37 @@
         <el-form-item>
           <el-input v-model="form.password" type="password" placeholder="密码" prefix-icon="Lock" @keyup.enter="handleLogin" />
         </el-form-item>
-        <el-button type="primary" style="width: 100%" @click="handleLogin">登录</el-button>
+        <el-button type="primary" style="width: 100%" :loading="loading" @click="handleLogin">登录</el-button>
       </el-form>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import request from '@/utils/request'
 
 const router = useRouter()
+const loading = ref(false)
 const form = reactive({ username: 'admin', password: 'admin123' })
 
-const handleLogin = () => {
-  if (form.username === 'admin' && form.password === 'admin123') {
+const handleLogin = async () => {
+  loading.value = true
+  try {
+    const res = await request.post('/api/v1/admin/auth/login', {
+      username: form.username,
+      passwordHash: form.password
+    })
+    localStorage.setItem('token', res.data.token)
+    localStorage.setItem('adminUser', JSON.stringify(res.data.adminUser))
+    ElMessage.success('登录成功')
     router.push('/dashboard')
-  } else {
+  } catch (e: any) {
     ElMessage.error('用户名或密码错误')
   }
+  loading.value = false
 }
 </script>
 
