@@ -76,10 +76,29 @@ services:
     networks:
       - drink-mall-network
 
+  caddy:
+    image: docker.1ms.run/library/caddy:2-alpine
+    container_name: drink-mall-caddy
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - admin
+    networks:
+      - drink-mall-network
+
 volumes:
   mysql_data:
     name: drink-mall_mysql_data
   redis_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   drink-mall-network:
