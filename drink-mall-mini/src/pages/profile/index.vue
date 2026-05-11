@@ -11,7 +11,7 @@
       <view class="user-info">
         <view class="avatar">酒</view>
         <view class="user-detail">
-          <view class="nickname-row" @click="showEditNickname = true">
+          <view class="nickname-row" @click="openEditNickname">
             <text class="nickname">{{ userStore.userInfo?.nickname || '微信用户' }}</text>
             <uni-icons type="compose" size="16" color="#aaa" style="margin-left: 8rpx;" />
           </view>
@@ -123,6 +123,11 @@ function navigateToOrders(status: string) {
 
 const showEditNickname = ref(false)
 const newNickname = ref('')
+
+function openEditNickname() {
+  newNickname.value = userStore.userInfo?.nickname || ''
+  showEditNickname.value = true
+}
 
 async function saveNickname() {
   if (!newNickname.value.trim()) {

@@ -40,4 +40,7 @@ public class User {
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
+
+    @Version
+    private Integer version;
 }

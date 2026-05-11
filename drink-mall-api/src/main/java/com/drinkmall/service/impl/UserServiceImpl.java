@@ -110,6 +110,16 @@ public class UserServiceImpl implements UserService {
         withdrawal.setStatus("pending");
         withdrawal.setCreatedAt(LocalDateTime.now());
         withdrawalMapper.insert(withdrawal);
+
+        BalanceLog balanceLog = new BalanceLog();
+        balanceLog.setUserId(userId);
+        balanceLog.setChangeType("withdrawal");
+        balanceLog.setAmount(request.getAmount().negate());
+        balanceLog.setBeforeBalance(balance);
+        balanceLog.setAfterBalance(balance.subtract(request.getAmount()));
+        balanceLog.setRemark("申请提现");
+        balanceLog.setCreatedAt(LocalDateTime.now());
+        balanceLogMapper.insert(balanceLog);
     }
 
     @Override
