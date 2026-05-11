@@ -47,6 +47,8 @@ public class PublicController {
     public Result<Page<Product>> getProducts(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String zoneType,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sortBy,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size
     ) {
@@ -60,8 +62,19 @@ public class PublicController {
         if (zoneType != null) {
             wrapper.eq(Product::getZoneType, zoneType);
         }
+        if (keyword != null && !keyword.isEmpty()) {
+            wrapper.like(Product::getName, keyword);
+        }
 
-        wrapper.orderByDesc(Product::getSortOrder);
+        if ("sales".equals(sortBy)) {
+            wrapper.orderByDesc(Product::getSales);
+        } else if ("price_asc".equals(sortBy)) {
+            wrapper.orderByAsc(Product::getPrice);
+        } else if ("price_desc".equals(sortBy)) {
+            wrapper.orderByDesc(Product::getPrice);
+        } else {
+            wrapper.orderByDesc(Product::getSortOrder);
+        }
 
         Page<Product> result = productMapper.selectPage(pageParam, wrapper);
         return Result.success(result);
