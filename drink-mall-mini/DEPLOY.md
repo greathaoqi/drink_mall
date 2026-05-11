@@ -37,7 +37,7 @@ https://你的域名
 ### 3. 修改 API 地址
 编辑 `drink-mall-mini/src/utils/request.ts`:
 ```typescript
-const BASE_URL = 'https://你的域名/api/v1'
+const BASE_URL = 'http://hy.ajiu.lol:18080/api/v1'
 ```
 
 ---
