@@ -58,7 +58,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onReady, onShow } from '@dcloudio/uni-app'
 import { http } from '@/utils/request'
 
 interface Banner { id: number; title: string; imageUrl: string; linkType: string; linkValue: string }
@@ -69,28 +69,42 @@ const banners = ref<Banner[]>([])
 const categories = ref<Category[]>([])
 const products = ref<Product[]>([])
 const announcements = ref<{ id: number; title: string; createdAt: string }[]>([])
+const pageReady = ref(false)
+let loadingPublicContent = false
 
 onShow(() => {
+  if (pageReady.value) {
+    loadPublicContent()
+  }
+})
+
+onReady(() => {
+  pageReady.value = true
   loadPublicContent()
 })
 
 async function loadPublicContent() {
+  if (loadingPublicContent) return
+  loadingPublicContent = true
   try {
-    const bannerRes = await http.get<Banner[]>('/public/banners', {}, { requireAuth: false })
-    if (bannerRes.code === 200) banners.value = bannerRes.data
+    const [bannerRes, categoryRes, productRes, annRes] = await Promise.all([
+      http.get<Banner[]>('/public/banners', {}, { requireAuth: false }),
+      http.get<Category[]>('/public/categories', {}, { requireAuth: false }),
+      http.get<{ records?: Product[] } | Product[]>('/public/products', { pageSize: 4 }, { requireAuth: false }),
+      http.get<{ id: number; title: string; createdAt: string }[]>('/content/announcements', {}, { requireAuth: false })
+    ])
 
-    const categoryRes = await http.get<Category[]>('/public/categories', {}, { requireAuth: false })
-    if (categoryRes.code === 200) categories.value = categoryRes.data
-
-    const productRes = await http.get<{ records: Product[] }>('/public/products', { pageSize: 4 }, { requireAuth: false })
-    if (productRes.code === 200) products.value = productRes.data.records || productRes.data
-
-    const annRes = await http.get<{ id: number; title: string; createdAt: string }[]>(
-      '/content/announcements', {}, { requireAuth: false }
-    )
-    if (annRes.code === 200) announcements.value = (annRes.data || []).slice(0, 3)
+    if (bannerRes.code === 200) banners.value = Array.isArray(bannerRes.data) ? bannerRes.data : []
+    if (categoryRes.code === 200) categories.value = Array.isArray(categoryRes.data) ? categoryRes.data : []
+    if (productRes.code === 200) {
+      const productData = Array.isArray(productRes.data) ? productRes.data : productRes.data?.records
+      products.value = productData || []
+    }
+    if (annRes.code === 200) announcements.value = (Array.isArray(annRes.data) ? annRes.data : []).slice(0, 3)
   } catch (error) {
     console.error('Failed to load public content:', error)
+  } finally {
+    loadingPublicContent = false
   }
 }
 
