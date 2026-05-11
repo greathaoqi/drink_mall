@@ -10,6 +10,7 @@ import com.drinkmall.dto.WithdrawalRequest;
 import com.drinkmall.entity.BalanceLog;
 import com.drinkmall.entity.PointsLog;
 import com.drinkmall.entity.Withdrawal;
+import com.drinkmall.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
