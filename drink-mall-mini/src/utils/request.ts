@@ -16,7 +16,7 @@ interface ApiResponse<T = any> {
   data: T
 }
 
-const BASE_URL = 'http://localhost:8080/api/v1'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://hy.ajiu.lol:18080/api/v1'
 
 async function request<T = any>(options: RequestOptions): Promise<ApiResponse<T>> {
   const { url, method = 'GET', data, header = {}, showLoading = false, showError = true, requireAuth = true } = options

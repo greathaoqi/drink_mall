@@ -116,7 +116,7 @@ docker build -t drink-mall-api ./drink-mall-api
 # 运行容器
 docker run -d \
   --name drink-mall-api \
-  -p 8080:8080 \
+  -p 18080:8080 \
   -e SPRING_PROFILES_ACTIVE=prod \
   -e DB_HOST=数据库地址 \
   -e DB_PORT=3306 \
@@ -161,7 +161,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location /api/ {
-        proxy_pass http://127.0.0.1:8080/api/;
+        proxy_pass http://127.0.0.1:18080/api/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }

@@ -1,11 +1,38 @@
 services:
+  mysql:
+    image: docker.1ms.run/library/mysql:8.0
+    container_name: drink-mall-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: drink_mall
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - drink-mall-network
+
   redis:
-    image: redis:7.2-alpine
+    image: docker.1ms.run/library/redis:7.2-alpine
     container_name: drink-mall-redis
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - drink-mall-network
 
@@ -14,38 +41,46 @@ services:
       context: ./drink-mall-api
       dockerfile: Dockerfile
     container_name: drink-mall-backend
+    restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://drink-mall-mysql:3306/drink_mall?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root123456
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
+      SERVER_ADDRESS: 0.0.0.0
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: drink_mall
+      DB_USERNAME: root
+      DB_PASSWORD: root123456
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
     ports:
-      - "8080:8080"
+      - "0.0.0.0:18080:8080"
     depends_on:
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - drink-mall-network
-    extra_hosts:
-      - "drink-mall-mysql:172.21.0.2"
 
   admin:
     build:
       context: ./drink-mall-admin
       dockerfile: Dockerfile
     container_name: drink-mall-admin
+    restart: unless-stopped
     ports:
-      - "3001:80"
+      - "0.0.0.0:13001:80"
     depends_on:
       - backend
     networks:
       - drink-mall-network
 
 volumes:
+  mysql_data:
+    name: drink-mall_mysql_data
   redis_data:
 
 networks:
   drink-mall-network:
-    name: drink-mall_default
-    external: true
+    driver: bridge
