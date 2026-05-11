@@ -11,14 +11,17 @@
       <view class="user-info">
         <view class="avatar">酒</view>
         <view class="user-detail">
-          <text class="nickname">{{ userStore.userInfo?.nickname || '微信用户' }}</text>
+          <view class="nickname-row" @click="showEditNickname = true">
+            <text class="nickname">{{ userStore.userInfo?.nickname || '微信用户' }}</text>
+            <uni-icons type="compose" size="16" color="#aaa" style="margin-left: 8rpx;" />
+          </view>
           <view class="status-row">
             <u-tag text="已实名" v-if="userStore.ageVerified" type="success" size="mini" />
           </view>
         </view>
       </view>
       <view class="stats-row">
-        <view class="stat-item" @click="navigateToBalance">
+        <view class="stat-item" @click="navigateToWallet">
           <text class="stat-value">¥{{ userStore.userInfo?.balance || 0 }}</text>
           <text class="stat-label">余额</text>
         </view>
@@ -62,12 +65,24 @@
       </view>
     </view>
   </view>
+
+  <view v-if="showEditNickname" class="nickname-overlay" @click.stop="showEditNickname = false">
+    <view class="nickname-dialog" @click.stop>
+      <text class="dialog-title">修改昵称</text>
+      <input v-model="newNickname" class="dialog-input" placeholder="请输入新昵称" maxlength="30" />
+      <view class="dialog-btns">
+        <button class="dialog-btn cancel" @click="showEditNickname = false">取消</button>
+        <button class="dialog-btn confirm" @click="saveNickname">确定</button>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useUserStore } from '@/store/user'
 import { demoLogin } from '@/services/auth'
+import { http } from '@/utils/request'
 
 const userStore = useUserStore()
 const demoLoading = ref(false)
@@ -90,8 +105,8 @@ async function handleDemoLogin() {
   }
 }
 
-function navigateToBalance() {
-  uni.navigateTo({ url: '/pages/order/list/index' })
+function navigateToWallet() {
+  uni.navigateTo({ url: '/pages/wallet/index' })
 }
 
 function navigateToPoints() {
@@ -104,6 +119,23 @@ function navigateToHelp() {
 
 function navigateToOrders(status: string) {
   uni.navigateTo({ url: `/pages/order/list/index?status=${status}` })
+}
+
+const showEditNickname = ref(false)
+const newNickname = ref('')
+
+async function saveNickname() {
+  if (!newNickname.value.trim()) {
+    uni.showToast({ title: '昵称不能为空', icon: 'none' }); return
+  }
+  const res = await http.put('/user/profile', { nickname: newNickname.value.trim() })
+  if (res.code === 200) {
+    if (userStore.userInfo) userStore.userInfo.nickname = newNickname.value.trim()
+    showEditNickname.value = false
+    uni.showToast({ title: '修改成功', icon: 'success' })
+  } else {
+    uni.showToast({ title: res.message || '修改失败', icon: 'none' })
+  }
 }
 </script>
 
@@ -274,4 +306,14 @@ function navigateToOrders(status: string) {
 button[open-type="contact"] {
   width: 100%;
 }
+
+.nickname-row { display: flex; align-items: center; }
+.nickname-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 999; }
+.nickname-dialog { background: #fff; border-radius: 16rpx; padding: 40rpx; width: 560rpx; }
+.dialog-title { font-size: 32rpx; font-weight: 600; display: block; margin-bottom: 30rpx; text-align: center; }
+.dialog-input { border: 1rpx solid #eee; border-radius: 8rpx; padding: 16rpx; font-size: 28rpx; width: 100%; margin-bottom: 30rpx; box-sizing: border-box; }
+.dialog-btns { display: flex; gap: 20rpx; }
+.dialog-btn { flex: 1; border-radius: 40rpx; font-size: 28rpx; padding: 16rpx; }
+.cancel { background: #f5f5f5; color: #666; border: none; }
+.confirm { background: #8a4f22; color: #fff; border: none; }
 </style>

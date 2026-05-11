@@ -16,6 +16,18 @@
     { "path": "pages/help/index", "style": { "navigationBarTitleText": "帮助中心" } },
     { "path": "pages/aftersale/index", "style": { "navigationBarTitleText": "申请售后" } },
     {
+      "path": "pages/wallet/index",
+      "style": { "navigationBarTitleText": "我的钱包" }
+    },
+    {
+      "path": "pages/wallet/withdraw/index",
+      "style": { "navigationBarTitleText": "申请提现" }
+    },
+    {
+      "path": "pages/wallet/history/index",
+      "style": { "navigationBarTitleText": "交易记录" }
+    },
+    {
       "path": "pages/announcement/list/index",
       "style": {
         "navigationBarTitleText": "平台公告"
