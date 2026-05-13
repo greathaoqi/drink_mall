@@ -1,54 +1,66 @@
 <template>
   <view class="login-page">
-    <view class="logo-section">
-      <view class="logo">酒</view>
-      <text class="app-name">酒水商城</text>
-      <text class="app-slogan">精选美酒，品质生活</text>
+    <view class="login-hero">
+      <view class="status-spacer"></view>
+      <view class="logo-orb">
+        <view class="glass-logo"></view>
+      </view>
+      <text class="brand-name">醇品汇</text>
+      <text class="brand-slogan">甄选美酒 · 共创财富</text>
     </view>
 
-    <view class="login-section">
-      <AgreementBox ref="agreementRef" @change="handleAgreementChange" />
+    <view class="login-sheet">
+      <text class="sheet-title">欢迎登录</text>
+      <text class="sheet-subtitle">登录后享受完整购物与分销服务</text>
 
-      <u-button type="primary" shape="circle" :disabled="!canLogin" @click="handleLogin" color="#07C160" customStyle="margin-top: 32rpx; width: 100%">
-        <u-icon name="weixin-fill" color="#FFFFFF" size="40" />
-        <text class="login-text">微信登录</text>
-      </u-button>
+      <button class="wechat-btn" :loading="loading" :disabled="!canLogin || loading" @click="handleLogin">
+        <uni-icons type="weixin" size="25" color="#ffffff" />
+        <text>微信快捷登录</text>
+      </button>
 
-      <u-button shape="circle" :loading="demoLoading" @click="handleDemoLogin" color="#8B5A2B" customStyle="margin-top: 24rpx; width: 100%">
-        <text class="login-text">演示登录（余额9999元）</text>
-      </u-button>
+      <button class="guest-btn" :loading="demoLoading" @click="handleDemoLogin">游客浏览</button>
 
-      <view class="tips">
-        <text class="tip-text">登录即表示您已阅读并同意相关协议</text>
+      <view class="agreement-row" @click="toggleAgreements">
+        <view class="check-box" :class="{ checked: canLogin }">
+          <uni-icons v-if="canLogin" type="checkmarkempty" size="16" color="#ffffff" />
+        </view>
+        <text>已阅读并同意</text>
+        <text class="link-text">《用户协议》</text>
+        <text class="link-text">《隐私协议》</text>
+      </view>
+
+      <view class="invite-tip">
+        <uni-icons type="info" size="16" color="#c27e00" />
+        <text>请通过好友分享码进入小程序完成注册</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import AgreementBox from '@/components/AgreementBox/AgreementBox.vue'
+import { computed, ref } from 'vue'
 import { demoLogin, wechatLogin } from '@/services/auth'
 
-const agreementRef = ref()
 const agreements = ref({
-  userAgreement: false,
-  privacyPolicy: false
+  userAgreement: true,
+  privacyPolicy: true
 })
 const loading = ref(false)
 const demoLoading = ref(false)
 
-const canLogin = computed(() => {
-  return agreements.value.userAgreement && agreements.value.privacyPolicy
-})
+const canLogin = computed(() => agreements.value.userAgreement && agreements.value.privacyPolicy)
 
-function handleAgreementChange(value: { userAgreement: boolean; privacyPolicy: boolean }) {
-  agreements.value = value
+function toggleAgreements() {
+  const next = !canLogin.value
+  agreements.value = {
+    userAgreement: next,
+    privacyPolicy: next
+  }
 }
 
 async function handleLogin() {
   if (!canLogin.value) {
-    uni.showToast({ title: '请先同意用户协议和隐私政策', icon: 'none' })
+    uni.showToast({ title: '请先同意用户协议和隐私协议', icon: 'none' })
     return
   }
 
@@ -86,7 +98,7 @@ async function handleDemoLogin() {
       uni.showToast({ title: '已进入演示账号', icon: 'success' })
       uni.switchTab({ url: '/pages/index/index' })
     } else {
-      uni.showToast({ title: '演示登录失败', icon: 'none' })
+      uni.switchTab({ url: '/pages/index/index' })
     }
   } finally {
     demoLoading.value = false
@@ -97,62 +109,176 @@ async function handleDemoLogin() {
 <style scoped lang="scss">
 .login-page {
   min-height: 100vh;
-  background: #FFFFFF;
-  display: flex;
-  flex-direction: column;
-  padding: 0 48rpx;
+  background: #ffffff;
+  color: #1f160f;
 }
 
-.logo-section {
+.login-hero {
+  min-height: 610rpx;
+  background: #2b0f00;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 160rpx;
-  margin-bottom: 128rpx;
 }
 
-.logo {
-  width: 160rpx;
-  height: 160rpx;
-  border-radius: 48rpx;
-  background: linear-gradient(135deg, #2f1909, #a4622b);
-  color: #fff6de;
+.status-spacer {
+  height: 140rpx;
+}
+
+.logo-orb {
+  width: 192rpx;
+  height: 192rpx;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ffcf3d 0%, #d18b00 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 72rpx;
-  font-weight: 800;
-  margin-bottom: 32rpx;
+  box-shadow: 0 26rpx 58rpx rgba(0, 0, 0, 0.18);
 }
 
-.app-name {
+.glass-logo {
+  position: relative;
+  width: 52rpx;
+  height: 76rpx;
+  border: 8rpx solid #ffffff;
+  border-top: 0;
+  border-radius: 8rpx 8rpx 28rpx 28rpx;
+}
+
+.glass-logo::before,
+.glass-logo::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+}
+
+.glass-logo::before {
+  bottom: -48rpx;
+  width: 8rpx;
+  height: 46rpx;
+}
+
+.glass-logo::after {
+  bottom: -52rpx;
+  width: 54rpx;
+  height: 8rpx;
+  border-radius: 999rpx;
+}
+
+.brand-name {
+  margin-top: 34rpx;
+  color: #f7c22b;
+  font-size: 50rpx;
+  font-weight: 900;
+  letter-spacing: 4rpx;
+}
+
+.brand-slogan {
+  margin-top: 22rpx;
+  color: #d59a27;
+  font-size: 26rpx;
+  letter-spacing: 4rpx;
+}
+
+.login-sheet {
+  margin-top: -54rpx;
+  min-height: 520rpx;
+  padding: 62rpx 54rpx 40rpx;
+  border-radius: 56rpx 56rpx 0 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sheet-title {
+  color: #1f160f;
   font-size: 40rpx;
-  font-weight: 600;
-  color: #333333;
-  margin-bottom: 16rpx;
+  font-weight: 900;
 }
 
-.app-slogan {
-  font-size: 28rpx;
-  color: #999999;
+.sheet-subtitle {
+  margin-top: 26rpx;
+  color: #b1a79a;
+  font-size: 25rpx;
 }
 
-.login-section {
-  padding: 0 16rpx;
+.wechat-btn,
+.guest-btn {
+  width: 100%;
+  height: 104rpx;
+  line-height: 104rpx;
+  border-radius: 999rpx;
+  font-size: 31rpx;
+  font-weight: 800;
 }
 
-.login-text {
-  margin-left: 16rpx;
-  color: #FFFFFF;
+.wechat-btn {
+  margin-top: 42rpx;
+  color: #ffffff;
+  background: #10b85a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  border: none;
 }
 
-.tips {
-  margin-top: 32rpx;
-  text-align: center;
+.guest-btn {
+  margin-top: 36rpx;
+  color: #c27e00;
+  background: #fffdf8;
+  border: 2rpx solid #e7c982;
 }
 
-.tip-text {
-  font-size: 24rpx;
-  color: #CCCCCC;
+.wechat-btn::after,
+.guest-btn::after {
+  border: none;
+}
+
+.agreement-row {
+  width: 100%;
+  margin-top: 36rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  color: #8c8377;
+  font-size: 23rpx;
+}
+
+.check-box {
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid #d39200;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.check-box.checked {
+  background: #d39200;
+}
+
+.link-text {
+  color: #6f665c;
+}
+
+.invite-tip {
+  width: 100%;
+  height: 80rpx;
+  margin-top: 40rpx;
+  padding: 0 28rpx;
+  border-radius: 16rpx;
+  background: #fff0c4;
+  color: #9b6a0d;
+  font-size: 23rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  box-sizing: border-box;
 }
 </style>

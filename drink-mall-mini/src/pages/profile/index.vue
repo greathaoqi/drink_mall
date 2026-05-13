@@ -1,91 +1,169 @@
 <template>
   <view class="profile-page">
-    <view v-if="!userStore.isLoggedIn" class="guest-section">
-      <view class="guest-avatar">酒</view>
-      <text class="guest-text">未登录</text>
-      <button class="demo-login-btn" :loading="demoLoading" @click="handleDemoLogin">演示登录（余额9999元）</button>
-      <button class="wechat-login-btn" @click="handleLogin">微信登录</button>
-    </view>
-
-    <view v-else class="user-section">
-      <view class="user-info">
-        <view class="avatar">酒</view>
-        <view class="user-detail">
-          <view class="nickname-row" @click="openEditNickname">
-            <text class="nickname">{{ userStore.userInfo?.nickname || '微信用户' }}</text>
-            <uni-icons type="compose" size="16" color="#aaa" style="margin-left: 8rpx;" />
-          </view>
-          <view class="status-row">
-            <u-tag text="已实名" v-if="userStore.ageVerified" type="success" size="mini" />
-          </view>
-        </view>
+    <view class="profile-hero">
+      <view class="status-spacer"></view>
+      <view class="settings-row">
+        <view></view>
+        <uni-icons type="gear" size="24" color="#ffffff" />
       </view>
-      <view class="stats-row">
-        <view class="stat-item" @click="navigateToWallet">
-          <text class="stat-value">¥{{ userStore.userInfo?.balance || 0 }}</text>
-          <text class="stat-label">余额</text>
+
+      <view class="user-card">
+        <view class="avatar-wrap">
+          <image v-if="userStore.userInfo?.avatarUrl" class="avatar-img" :src="userStore.userInfo.avatarUrl" mode="aspectFill" />
+          <text v-else>{{ userStore.isLoggedIn ? displayName.slice(0, 1) : '酒' }}</text>
         </view>
-        <view class="stat-item" @click="navigateToPoints">
-          <text class="stat-value">{{ userStore.userInfo?.points || 0 }}</text>
-          <text class="stat-label">积分</text>
+        <view class="user-meta">
+          <text class="nickname">{{ userStore.isLoggedIn ? displayName : '未登录用户' }}</text>
+          <text class="phone">{{ userStore.isLoggedIn ? maskedPhone : '登录后查看会员权益' }}</text>
+          <text class="member-pill">{{ userStore.isLoggedIn ? memberTitle : '游客模式 · 浏览中' }}</text>
         </view>
       </view>
     </view>
 
-    <view class="menu-section">
-      <view class="section-title">帮助与客服</view>
-      <view class="menu-list">
-        <button class="menu-item" open-type="contact">
-          <view class="menu-left">
-            <u-icon name="kefu" size="40" color="#07C160" />
-            <text>在线客服</text>
-          </view>
-          <u-icon name="arrow-right" color="#CCCCCC" />
-        </button>
-        <view class="menu-item" @click="navigateToHelp">
-          <view class="menu-left">
-            <u-icon name="question-circle" size="40" />
-            <text>帮助中心</text>
-          </view>
-          <u-icon name="arrow-right" color="#CCCCCC" />
+    <view class="summary-card">
+      <view class="summary-item">
+        <text class="summary-value gold">¥ {{ formatMoney(withdrawable) }}</text>
+        <text class="summary-label">可提现余额</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-value">¥ {{ formatMoney(teamPerformance) }}</text>
+        <text class="summary-label">团队业绩</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-value olive">{{ points }}</text>
+        <text class="summary-label">积分</text>
+      </view>
+    </view>
+
+    <view class="section orders-section">
+      <view class="section-header">
+        <text>我的订单</text>
+        <text class="section-more" @click="navigateToOrders('')">全部订单 ></text>
+      </view>
+      <view class="order-grid">
+        <view class="order-item" v-for="item in orderItems" :key="item.label" @click="navigateToOrders(item.status)">
+          <uni-icons :type="item.icon" size="31" color="#6f6f6f" />
+          <text>{{ item.label }}</text>
         </view>
       </view>
     </view>
 
-    <view class="menu-section" v-if="userStore.isLoggedIn">
-      <view class="section-title">我的订单</view>
-      <view class="menu-list">
-        <view class="menu-item" @click="navigateToOrders('pending')">
-          <view class="menu-left">
-            <u-icon name="clock" size="40" />
-            <text>待付款</text>
-          </view>
-          <u-icon name="arrow-right" color="#CCCCCC" />
+    <view class="section assets-section">
+      <view class="section-header">
+        <text>我的资产</text>
+        <text class="section-more" @click="navigateToWithdraw">提现 ></text>
+      </view>
+      <view class="asset-grid">
+        <view class="asset-card warm" @click="navigateToWallet">
+          <text class="asset-value">¥{{ formatMoney(withdrawable) }}</text>
+          <text class="asset-label">可提现余额</text>
+        </view>
+        <view class="asset-card gray">
+          <text class="asset-value">¥{{ formatMoney(frozenAmount) }}</text>
+          <text class="asset-label">冻结金额</text>
+        </view>
+        <view class="asset-card blue">
+          <text class="asset-value">¥{{ formatMoney(dfBalance) }}</text>
+          <text class="asset-label">DF余额</text>
+        </view>
+        <view class="asset-card pink" @click="navigateToPoints">
+          <text class="asset-value">{{ points }}</text>
+          <text class="asset-label">积分</text>
         </view>
       </view>
     </view>
-  </view>
 
-  <view v-if="showEditNickname" class="nickname-overlay" @click.stop="showEditNickname = false">
-    <view class="nickname-dialog" @click.stop>
-      <text class="dialog-title">修改昵称</text>
-      <input v-model="newNickname" class="dialog-input" placeholder="请输入新昵称" maxlength="30" />
-      <view class="dialog-btns">
-        <button class="dialog-btn cancel" @click="showEditNickname = false">取消</button>
-        <button class="dialog-btn confirm" @click="saveNickname">确定</button>
+    <view class="menu-list">
+      <view class="menu-item" @click="goDistribution">
+        <view class="menu-left">
+          <view class="menu-icon">
+            <uni-icons type="staff" size="24" color="#d39200" />
+          </view>
+          <text>团队管理</text>
+        </view>
+        <uni-icons type="right" size="18" color="#c7c7c7" />
+      </view>
+      <view class="menu-item">
+        <view class="menu-left">
+          <view class="menu-icon">
+            <uni-icons type="redo" size="24" color="#d39200" />
+          </view>
+          <text>分享邀请</text>
+        </view>
+        <uni-icons type="right" size="18" color="#c7c7c7" />
+      </view>
+      <view v-if="!userStore.isLoggedIn" class="login-actions">
+        <button class="login-btn" @click="handleLogin">微信登录</button>
+        <button class="demo-btn" :loading="demoLoading" @click="handleDemoLogin">演示登录</button>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user'
 import { demoLogin } from '@/services/auth'
 import { http } from '@/utils/request'
 
+interface MemberCenter {
+  profile: {
+    nickname: string
+    avatarUrl: string
+    maskedPhone: string
+    memberTitle: string
+  }
+  summary: {
+    withdrawableBalance: number | string
+    teamPerformance: number | string
+    points: number
+  }
+  assets: {
+    frozenBalance: number | string
+    dfBalance: number | string
+  }
+}
+
 const userStore = useUserStore()
 const demoLoading = ref(false)
+const memberCenter = ref<MemberCenter | null>(null)
+
+const displayName = computed(() => memberCenter.value?.profile.nickname || userStore.userInfo?.nickname || '李明远')
+const maskedPhone = computed(() => memberCenter.value?.profile.maskedPhone || '138****8888')
+const memberTitle = computed(() => memberCenter.value?.profile.memberTitle || '县级联营商 · 生态合伙人')
+const withdrawable = computed(() => Number(memberCenter.value?.summary.withdrawableBalance ?? userStore.userInfo?.balance ?? 24860))
+const points = computed(() => Number(memberCenter.value?.summary.points ?? userStore.userInfo?.points ?? 1280))
+const teamPerformance = computed(() => Number(memberCenter.value?.summary.teamPerformance ?? 58400))
+const frozenAmount = computed(() => Number(memberCenter.value?.assets.frozenBalance ?? 3200))
+const dfBalance = computed(() => Number(memberCenter.value?.assets.dfBalance ?? 1500))
+
+const orderItems = [
+  { label: '待付款', icon: 'wallet', status: 'pending' },
+  { label: '待发货', icon: 'cube', status: 'paid' },
+  { label: '待收货', icon: 'car', status: 'shipped' },
+  { label: '已完成', icon: 'checkbox', status: 'completed' },
+  { label: '售后', icon: 'headphones', status: 'aftersale' }
+]
+
+onShow(() => {
+  if (userStore.isLoggedIn) {
+    loadMemberCenter()
+  }
+})
+
+async function loadMemberCenter() {
+  try {
+    const res = await http.get<MemberCenter>('/user/member-center', {}, { showError: false })
+    if (res.code === 200 && res.data) {
+      memberCenter.value = res.data
+    }
+  } catch (error) {
+    console.error('Failed to load member center:', error)
+  }
+}
 
 function handleLogin() {
   uni.navigateTo({ url: '/pages/login/index' })
@@ -97,6 +175,7 @@ async function handleDemoLogin() {
     const result = await demoLogin()
     if (result) {
       uni.showToast({ title: '演示登录成功', icon: 'success' })
+      loadMemberCenter()
     } else {
       uni.showToast({ title: '请确认后端已启动', icon: 'none' })
     }
@@ -109,216 +188,288 @@ function navigateToWallet() {
   uni.navigateTo({ url: '/pages/wallet/index' })
 }
 
-function navigateToPoints() {
-  uni.navigateTo({ url: '/pages/points/index' })
+function navigateToWithdraw() {
+  uni.navigateTo({ url: '/pages/wallet/withdraw/index' })
 }
 
-function navigateToHelp() {
-  uni.navigateTo({ url: '/pages/help/index' })
+function navigateToPoints() {
+  uni.navigateTo({ url: '/pages/points/index' })
 }
 
 function navigateToOrders(status: string) {
   uni.navigateTo({ url: `/pages/order/list/index?status=${status}` })
 }
 
-const showEditNickname = ref(false)
-const newNickname = ref('')
-
-function openEditNickname() {
-  newNickname.value = userStore.userInfo?.nickname || ''
-  showEditNickname.value = true
+function goDistribution() {
+  uni.switchTab({ url: '/pages/distribution/level/index' })
 }
 
-async function saveNickname() {
-  if (!newNickname.value.trim()) {
-    uni.showToast({ title: '昵称不能为空', icon: 'none' }); return
-  }
-  const res = await http.put('/user/profile', { nickname: newNickname.value.trim() })
-  if (res.code === 200) {
-    if (userStore.userInfo) userStore.userInfo.nickname = newNickname.value.trim()
-    showEditNickname.value = false
-    uni.showToast({ title: '修改成功', icon: 'success' })
-  } else {
-    uni.showToast({ title: res.message || '修改失败', icon: 'none' })
-  }
+function formatMoney(value: number) {
+  return Number(value || 0).toLocaleString('zh-CN')
 }
 </script>
 
 <style scoped lang="scss">
 .profile-page {
   min-height: 100vh;
-  background: #F7F7F7;
+  padding-bottom: 28rpx;
+  background: #f4f0e8;
+  color: #1f160f;
 }
 
-.guest-section {
+.profile-hero {
+  height: 346rpx;
+  padding: 0 30rpx;
+  background: #2b0f00;
+  box-sizing: border-box;
+}
+
+.status-spacer {
+  height: 92rpx;
+}
+
+.settings-row {
+  height: 54rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-card {
+  margin-top: 18rpx;
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+}
+
+.avatar-wrap {
+  width: 122rpx;
+  height: 122rpx;
+  border: 4rpx solid #f5bc25;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f4d8a4, #c68a32);
+  color: #2b0f00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 44rpx;
+  font-weight: 900;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.user-meta {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 80rpx;
-  background: #FFFFFF;
-}
-
-.guest-avatar {
-  width: 160rpx;
-  height: 160rpx;
-  border-radius: 50%;
-  margin-bottom: 24rpx;
-  background: linear-gradient(135deg, #2f1909, #a4622b);
-  color: #fff6de;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 72rpx;
-  font-weight: 800;
-}
-
-.guest-text {
-  font-size: 32rpx;
-  color: #999999;
-  margin-bottom: 32rpx;
-}
-
-.demo-login-btn {
-  width: 420rpx;
-  height: 84rpx;
-  line-height: 84rpx;
-  border-radius: 999rpx;
-  color: #fff;
-  background: linear-gradient(135deg, #8B5A2B, #C97931);
-  font-size: 30rpx;
-  font-weight: 700;
-  border: none;
-}
-
-.demo-login-btn::after,
-.wechat-login-btn::after {
-  border: none;
-}
-
-.wechat-login-btn {
-  width: 420rpx;
-  height: 76rpx;
-  line-height: 76rpx;
-  margin-top: 20rpx;
-  border-radius: 999rpx;
-  color: #6b4a28;
-  background: #fff6e8;
-  font-size: 28rpx;
-}
-
-.user-section {
-  background: #FFFFFF;
-  padding: 32rpx;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  margin-bottom: 32rpx;
-}
-
-.avatar {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 50%;
-  margin-right: 24rpx;
-  background: linear-gradient(135deg, #2f1909, #a4622b);
-  color: #fff6de;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 52rpx;
-  font-weight: 800;
-}
-
-.user-detail {
-  flex: 1;
 }
 
 .nickname {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #333333;
+  color: #ffffff;
+  font-size: 35rpx;
+  font-weight: 900;
 }
 
-.status-row {
+.phone {
+  margin-top: 10rpx;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 25rpx;
+}
+
+.member-pill {
+  align-self: flex-start;
   margin-top: 12rpx;
+  padding: 9rpx 18rpx;
+  border-radius: 999rpx;
+  background: #d4930e;
+  color: #fff8d8;
+  font-size: 22rpx;
+  font-weight: 800;
 }
 
-.stats-row {
-  display: flex;
-  border-top: 1rpx solid #F7F7F7;
-  padding-top: 24rpx;
+.summary-card {
+  position: relative;
+  z-index: 1;
+  height: 142rpx;
+  margin-top: -24rpx;
+  border-radius: 24rpx 24rpx 0 0;
+  background: #ffffff;
+  display: grid;
+  grid-template-columns: 1fr 2rpx 1fr 2rpx 1fr;
+  align-items: center;
 }
 
-.stat-item {
-  flex: 1;
+.summary-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 10rpx;
 }
 
-.stat-value {
-  font-size: 40rpx;
-  font-weight: 600;
-  color: #333333;
+.summary-value {
+  color: #19120b;
+  font-size: 30rpx;
+  font-weight: 900;
 }
 
-.stat-label {
-  font-size: 24rpx;
-  color: #999999;
-  margin-top: 8rpx;
+.summary-value.gold {
+  color: #d39200;
 }
 
-.menu-section {
-  background: #FFFFFF;
-  margin-top: 16rpx;
+.summary-value.olive {
+  color: #987124;
 }
 
-.section-title {
-  font-size: 28rpx;
-  color: #999999;
-  padding: 24rpx;
-  padding-bottom: 0;
+.summary-label {
+  color: #9a9085;
+  font-size: 22rpx;
 }
 
-.menu-list {
-  padding: 0 24rpx;
+.summary-divider {
+  width: 2rpx;
+  height: 72rpx;
+  background: #eee9df;
 }
 
-.menu-item {
+.section {
+  margin-top: 20rpx;
+  padding: 30rpx;
+  background: #ffffff;
+}
+
+.section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid #F7F7F7;
-  background: transparent;
-  border: none;
-  margin: 0;
-  line-height: normal;
+  color: #1f160f;
+  font-size: 31rpx;
+  font-weight: 900;
 }
 
-.menu-item::after {
-  border: none;
+.section-more {
+  color: #d39200;
+  font-size: 23rpx;
+  font-weight: 700;
+}
+
+.order-grid {
+  margin-top: 32rpx;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.order-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  color: #716a62;
+  font-size: 23rpx;
+}
+
+.asset-grid {
+  margin-top: 26rpx;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24rpx 20rpx;
+}
+
+.asset-card {
+  height: 136rpx;
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9rpx;
+}
+
+.asset-card.warm { background: #fff0c8; }
+.asset-card.gray { background: #f2f2f2; }
+.asset-card.blue { background: #dfeaff; }
+.asset-card.pink { background: #ffe1f0; }
+
+.asset-value {
+  color: #d39200;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.gray .asset-value { color: #6f6f6f; }
+.blue .asset-value { color: #175bd2; }
+.pink .asset-value { color: #d91d82; }
+
+.asset-label {
+  color: #8d8175;
+  font-size: 22rpx;
+}
+
+.menu-list {
+  margin-top: 20rpx;
+  background: #ffffff;
+}
+
+.menu-item {
+  height: 100rpx;
+  padding: 0 30rpx;
+  border-bottom: 1rpx solid #eee9df;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .menu-left {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: 18rpx;
+  color: #1f160f;
+  font-size: 29rpx;
+  font-weight: 800;
 }
 
-button[open-type="contact"] {
-  width: 100%;
+.menu-icon {
+  width: 54rpx;
+  height: 54rpx;
+  border-radius: 50%;
+  background: #fff1ce;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.nickname-row { display: flex; align-items: center; }
-.nickname-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 999; }
-.nickname-dialog { background: #fff; border-radius: 16rpx; padding: 40rpx; width: 560rpx; }
-.dialog-title { font-size: 32rpx; font-weight: 600; display: block; margin-bottom: 30rpx; text-align: center; }
-.dialog-input { border: 1rpx solid #eee; border-radius: 8rpx; padding: 16rpx; font-size: 28rpx; width: 100%; margin-bottom: 30rpx; box-sizing: border-box; }
-.dialog-btns { display: flex; gap: 20rpx; }
-.dialog-btn { flex: 1; border-radius: 40rpx; font-size: 28rpx; padding: 16rpx; }
-.cancel { background: #f5f5f5; color: #666; border: none; }
-.confirm { background: #8a4f22; color: #fff; border: none; }
+.login-actions {
+  padding: 30rpx;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+}
+
+.login-btn,
+.demo-btn {
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+.login-btn {
+  background: #10b85a;
+  color: #ffffff;
+}
+
+.demo-btn {
+  background: #fff4d6;
+  color: #d39200;
+}
+
+.login-btn::after,
+.demo-btn::after {
+  border: none;
+}
 </style>

@@ -76,7 +76,7 @@ const checkout = () => {
 }
 
 const goProducts = () => {
-  uni.switchTab({ url: '/pages/product/list' })
+  uni.navigateTo({ url: '/pages/product/list' })
 }
 
 onShow(() => loadCart())

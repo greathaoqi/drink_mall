@@ -27,6 +27,15 @@ public class User {
 
     private Integer points;
 
+    @TableField("distribution_level")
+    private String distributionLevel;
+
+    @TableField("team_performance")
+    private BigDecimal teamPerformance;
+
+    @TableField("df_balance")
+    private BigDecimal dfBalance;
+
     @TableField("age_verified")
     private Boolean ageVerified;
 

@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.Result;
+import com.drinkmall.dto.MemberCenterResponse;
 import com.drinkmall.dto.UpdateProfileRequest;
 import com.drinkmall.dto.UserInfoResponse;
 import com.drinkmall.dto.WithdrawalRequest;
@@ -28,6 +29,13 @@ public class UserController {
         Long userId = StpUtil.getLoginIdAsLong();
         UserInfoResponse userInfo = userService.getUserInfo(userId);
         return Result.success(userInfo);
+    }
+
+    @GetMapping("/member-center")
+    @SaCheckLogin
+    public Result<MemberCenterResponse> getMemberCenter() {
+        Long userId = StpUtil.getLoginIdAsLong();
+        return Result.success(userService.getMemberCenter(userId));
     }
 
     @PostMapping("/verify-age")

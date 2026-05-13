@@ -15,7 +15,11 @@ public class UserInfoResponse {
     private String avatarUrl;
     private String phone;
     private BigDecimal balance;
+    private BigDecimal frozenBalance;
     private Integer points;
+    private String distributionLevel;
+    private BigDecimal teamPerformance;
+    private BigDecimal dfBalance;
     private Boolean ageVerified;
 
     public static UserInfoResponse fromEntity(User user) {
@@ -26,7 +30,11 @@ public class UserInfoResponse {
                 .avatarUrl(user.getAvatarUrl())
                 .phone(user.getPhone())
                 .balance(user.getBalance())
+                .frozenBalance(user.getFrozenBalance())
                 .points(user.getPoints())
+                .distributionLevel(user.getDistributionLevel())
+                .teamPerformance(user.getTeamPerformance())
+                .dfBalance(user.getDfBalance())
                 .ageVerified(user.getAgeVerified())
                 .build();
     }
