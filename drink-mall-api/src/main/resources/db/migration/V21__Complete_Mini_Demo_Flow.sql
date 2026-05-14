@@ -64,9 +64,9 @@ INSERT INTO products (
 (101, 4, '演示主产品 酱香礼盒 500ml*2', '余额支付演示主推款', '适合演示浏览、加购、下单、余额支付和订单流转。', 'https://img.yzcdn.cn/vant/apple-1.jpg', '["https://img.yzcdn.cn/vant/apple-1.jpg","https://img.yzcdn.cn/vant/apple-2.jpg"]', 299.00, 399.00, 888, 216, 'main', 'online,balance,wine_bean', 99, NULL, NULL, TRUE, 1, 0),
 (102, 7, '演示零售 干红葡萄酒 750ml', '多商品加购演示', '用于演示零售专区、购物车多商品和普通订单。', 'https://img.yzcdn.cn/vant/ipad.jpeg', '["https://img.yzcdn.cn/vant/ipad.jpeg"]', 128.00, 168.00, 666, 139, 'retail', 'online,balance', 20, NULL, NULL, FALSE, 1, 1),
 (103, 10, '演示零售 精酿啤酒 330ml*6', '低客单价加购演示', '用于演示多商品加购、订单金额计算和售后入口。', 'https://img.yzcdn.cn/vant/sand.jpg', '["https://img.yzcdn.cn/vant/sand.jpg"]', 59.00, 79.00, 999, 521, 'retail', 'online,balance', 10, NULL, NULL, FALSE, 1, 2),
-(104, 2, '积分兑换 酒具礼包', '纯积分兑换演示', '礼包专区仅支持积分兑换，不支持组合支付。', 'https://img.yzcdn.cn/vant/gift-card.png', '688.00', '888.00', 100, 38, 'gift', 'points', 0, 688, NULL, FALSE, 1, 3),
+(104, 2, '积分兑换 酒具礼包', '纯积分兑换演示', '礼包专区仅支持积分兑换，不支持组合支付。', 'https://img.yzcdn.cn/vant/gift-card.png', '["https://img.yzcdn.cn/vant/gift-card.png"]', 688.00, 888.00, 100, 38, 'gift', 'points', 0, 688, NULL, FALSE, 1, 3),
 (105, 4, '演示招商升级礼包 县级联营商', '购买后演示升级为县级联营商', '招商专区演示商品，已配置实名认证要求、合作确认和投资等级升级。', 'https://img.yzcdn.cn/vant/apple-2.jpg', '["https://img.yzcdn.cn/vant/apple-2.jpg"]', 998.00, 1288.00, 200, 18, 'investment', 'online,balance,wine_bean,offline_corporate', 300, NULL, 'county', TRUE, 1, 4),
-(106, 4, '演示主产品 升级推客套装', '购买后累计主产品金额达到推客门槛', '用于演示普通用户购买主产品后升级推客。', 'https://img.yzcdn.cn/vant/apple-1.jpg', '399.00', '499.00', 300, 66, 'main', 'online,balance,wine_bean', 120, NULL, NULL, TRUE, 1, 5)
+(106, 4, '演示主产品 升级推客套装', '购买后累计主产品金额达到推客门槛', '用于演示普通用户购买主产品后升级推客。', 'https://img.yzcdn.cn/vant/apple-1.jpg', '["https://img.yzcdn.cn/vant/apple-1.jpg"]', 399.00, 499.00, 300, 66, 'main', 'online,balance,wine_bean', 120, NULL, NULL, TRUE, 1, 5)
 ON DUPLICATE KEY UPDATE
     category_id = VALUES(category_id),
     name = VALUES(name),
@@ -137,9 +137,15 @@ VALUES (
     publisher = VALUES(publisher),
     status = VALUES(status);
 
+DELETE FROM points_logs
+WHERE user_id = 10001 AND remark = '生产演示账号初始化积分，可用于积分兑换';
+
 INSERT INTO points_logs (user_id, change_type, points, before_points, after_points, order_id, remark, created_at)
 VALUES
 (10001, 'adjust', 5000, 0, 5000, NULL, '生产演示账号初始化积分，可用于积分兑换', NOW());
+
+DELETE FROM balance_logs
+WHERE user_id = 10001 AND remark = '生产演示账号初始化余额，可用于余额支付';
 
 INSERT INTO balance_logs (user_id, change_type, amount, before_balance, after_balance, order_id, remark, created_at)
 VALUES

@@ -29,6 +29,8 @@ class DemoFlowSeedMigrationTest {
                 .contains("allowed_payment_methods")
                 .contains("real_name_status")
                 .contains("main_zone_paid_amount")
-                .contains("team_performance");
+                .contains("team_performance")
+                .contains("DELETE FROM points_logs")
+                .contains("DELETE FROM balance_logs");
     }
 }
