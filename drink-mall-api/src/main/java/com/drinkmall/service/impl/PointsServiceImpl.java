@@ -3,9 +3,19 @@ package com.drinkmall.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.drinkmall.common.BusinessException;
 import com.drinkmall.dto.CreateOrderRequest;
-import com.drinkmall.entity.*;
-import com.drinkmall.mapper.*;
-import com.drinkmall.service.*;
+import com.drinkmall.dto.PayOrderRequest;
+import com.drinkmall.entity.Address;
+import com.drinkmall.entity.Order;
+import com.drinkmall.entity.PointsLog;
+import com.drinkmall.entity.Product;
+import com.drinkmall.entity.User;
+import com.drinkmall.enums.PaymentMethod;
+import com.drinkmall.mapper.AddressMapper;
+import com.drinkmall.mapper.PointsLogMapper;
+import com.drinkmall.mapper.ProductMapper;
+import com.drinkmall.mapper.UserMapper;
+import com.drinkmall.service.OrderService;
+import com.drinkmall.service.PointsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +32,7 @@ public class PointsServiceImpl implements PointsService {
     private final ProductMapper productMapper;
     private final PointsLogMapper pointsLogMapper;
     private final OrderService orderService;
+    private final AddressMapper addressMapper;
 
     @Override
     public Integer getPointsBalance(Long userId) {
@@ -42,31 +53,25 @@ public class PointsServiceImpl implements PointsService {
             throw new BusinessException(400, "该商品不支持积分兑换");
         }
 
-        int requiredPoints = product.getPrice().intValue();
-        if (user.getPoints() < requiredPoints) {
+        int requiredPoints = product.getGiftPointsPrice() == null ? product.getPrice().intValue() : product.getGiftPointsPrice();
+        if (user == null || user.getPoints() == null || user.getPoints() < requiredPoints) {
             throw new BusinessException(400, "积分不足");
         }
 
-        int beforePoints = user.getPoints();
-        user.setPoints(beforePoints - requiredPoints);
-        userMapper.updateById(user);
-
-        PointsLog log = new PointsLog();
-        log.setUserId(userId);
-        log.setChangeType("redeem");
-        log.setPoints(-requiredPoints);
-        log.setBeforePoints(beforePoints);
-        log.setAfterPoints(user.getPoints());
-        log.setRemark("兑换商品: " + product.getName());
-        pointsLogMapper.insert(log);
-
         CreateOrderRequest request = new CreateOrderRequest();
+        request.setAddressId(resolveAddressId(userId));
+        request.setPaymentMethod(PaymentMethod.POINTS.getCode());
+
         CreateOrderRequest.CartItemInfo item = new CreateOrderRequest.CartItemInfo();
         item.setProductId(productId);
         item.setQuantity(1);
         request.setItems(java.util.Collections.singletonList(item));
 
-        return orderService.createOrder(userId, request).getId();
+        Order order = orderService.createOrder(userId, request);
+        PayOrderRequest payRequest = new PayOrderRequest();
+        payRequest.setPaymentMethod(PaymentMethod.POINTS.getCode());
+        orderService.payOrder(userId, order.getId(), payRequest);
+        return order.getId();
     }
 
     @Override
@@ -88,5 +93,21 @@ public class PointsServiceImpl implements PointsService {
         log.setOrderId(orderId);
         log.setRemark(remark);
         pointsLogMapper.insert(log);
+    }
+
+    private Long resolveAddressId(Long userId) {
+        Address address = addressMapper.selectOne(new LambdaQueryWrapper<Address>()
+                .eq(Address::getUserId, userId)
+                .eq(Address::getIsDefault, true)
+                .last("LIMIT 1"));
+        if (address == null) {
+            address = addressMapper.selectOne(new LambdaQueryWrapper<Address>()
+                    .eq(Address::getUserId, userId)
+                    .last("LIMIT 1"));
+        }
+        if (address == null) {
+            throw new BusinessException(400, "请先添加收货地址");
+        }
+        return address.getId();
     }
 }
