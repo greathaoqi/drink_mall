@@ -14,4 +14,7 @@ public class OrderItemResponse {
     private BigDecimal price;
     private Integer quantity;
     private BigDecimal totalAmount;
+    private String zoneType;
+    private Integer giftPoints;
+    private Integer pointsAmount;
 }

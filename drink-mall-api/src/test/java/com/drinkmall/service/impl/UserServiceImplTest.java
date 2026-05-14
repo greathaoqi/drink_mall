@@ -6,8 +6,10 @@ import com.drinkmall.entity.User;
 import com.drinkmall.mapper.BalanceLogMapper;
 import com.drinkmall.mapper.OrderMapper;
 import com.drinkmall.mapper.PointsLogMapper;
+import com.drinkmall.mapper.SysConfigMapper;
 import com.drinkmall.mapper.UserMapper;
 import com.drinkmall.mapper.WithdrawalMapper;
+import com.drinkmall.service.WithdrawalService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +35,10 @@ class UserServiceImplTest {
     private WithdrawalMapper withdrawalMapper;
     @Mock
     private OrderMapper orderMapper;
+    @Mock
+    private SysConfigMapper sysConfigMapper;
+    @Mock
+    private WithdrawalService withdrawalService;
 
     private UserServiceImpl userService;
 
@@ -43,7 +49,9 @@ class UserServiceImplTest {
                 balanceLogMapper,
                 pointsLogMapper,
                 withdrawalMapper,
-                orderMapper
+                orderMapper,
+                sysConfigMapper,
+                withdrawalService
         );
     }
 

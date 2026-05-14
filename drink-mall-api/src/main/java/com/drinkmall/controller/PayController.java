@@ -5,9 +5,11 @@ import com.drinkmall.common.Result;
 import com.drinkmall.entity.Order;
 import com.drinkmall.entity.PointsLog;
 import com.drinkmall.entity.User;
+import com.drinkmall.dto.PayOrderRequest;
 import com.drinkmall.mapper.OrderMapper;
 import com.drinkmall.mapper.PointsLogMapper;
 import com.drinkmall.mapper.UserMapper;
+import com.drinkmall.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,7 @@ public class PayController {
     private final OrderMapper orderMapper;
     private final UserMapper userMapper;
     private final PointsLogMapper pointsLogMapper;
+    private final OrderService orderService;
 
     @PostMapping("/callback")
     public String handleWeChatPayCallback(@RequestBody Map<String, Object> data) {
@@ -37,11 +40,10 @@ public class PayController {
         if (order == null || !"pending".equals(order.getStatus())) {
             return "SUCCESS";
         }
-        order.setStatus("paid");
-        order.setPaymentMethod("wechat");
-        order.setPaymentTime(LocalDateTime.now());
-        orderMapper.updateById(order);
-        addPointsForOrder(order);
+        PayOrderRequest request = new PayOrderRequest();
+        request.setPaymentMethod(order.getPaymentMethod() == null ? "online" : order.getPaymentMethod());
+        request.setPaymentNo((String) data.get("transaction_id"));
+        orderService.payOrder(order.getUserId(), order.getId(), request);
         return "SUCCESS";
     }
 

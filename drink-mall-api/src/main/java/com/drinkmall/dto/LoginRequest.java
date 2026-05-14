@@ -14,4 +14,10 @@ public class LoginRequest {
 
     @NotNull(message = "请同意隐私政策")
     private Boolean privacyPolicy;
+
+    private String inviteCode;
+
+    private Long inviterId;
+
+    private String registerSource;
 }

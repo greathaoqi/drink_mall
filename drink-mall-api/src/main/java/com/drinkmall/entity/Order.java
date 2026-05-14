@@ -15,9 +15,14 @@ public class Order {
     private Long addressId;
     private BigDecimal totalAmount;
     private BigDecimal payAmount;
+    private Integer pointsAmount;
+    private String zoneType;
     private String status;
     private String paymentMethod;
     private String paymentNo;
+    private String offlineTransferNo;
+    private Long offlineConfirmedBy;
+    private LocalDateTime offlineConfirmedAt;
     private LocalDateTime paymentTime;
     private LocalDateTime shipTime;
     private String logisticsCompany;

@@ -1,6 +1,7 @@
 package com.drinkmall.controller.admin;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.Result;
@@ -46,9 +47,21 @@ public class AdminOrderController {
         return Result.success(null);
     }
 
+    @PutMapping("/{orderId}/offline-confirm")
+    public Result<Void> confirmOfflineTransfer(@PathVariable Long orderId, @RequestParam String paymentNo) {
+        adminOrderService.confirmOfflineTransfer(orderId, StpUtil.getLoginIdAsLong(), paymentNo);
+        return Result.success(null);
+    }
+
     @PutMapping("/{orderId}/cancel")
     public Result<Void> cancelOrder(@PathVariable Long orderId, @RequestParam String reason) {
         adminOrderService.cancelOrder(orderId, reason);
+        return Result.success(null);
+    }
+
+    @PutMapping("/{orderId}/complete")
+    public Result<Void> completeOrder(@PathVariable Long orderId) {
+        adminOrderService.completeOrder(orderId);
         return Result.success(null);
     }
 

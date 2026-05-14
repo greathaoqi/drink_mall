@@ -1,16 +1,29 @@
 package com.drinkmall.service.admin.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.BusinessException;
-import com.drinkmall.dto.OrderResponse;
 import com.drinkmall.dto.OrderItemResponse;
+import com.drinkmall.dto.OrderResponse;
 import com.drinkmall.entity.Aftersale;
+import com.drinkmall.entity.OperationLog;
 import com.drinkmall.entity.Order;
 import com.drinkmall.entity.OrderItem;
 import com.drinkmall.entity.Product;
-import com.drinkmall.mapper.*;
+import com.drinkmall.enums.OrderStatus;
+import com.drinkmall.enums.PaymentMethod;
+import com.drinkmall.enums.ProductZoneType;
+import com.drinkmall.mapper.AddressMapper;
+import com.drinkmall.mapper.AftersaleMapper;
+import com.drinkmall.mapper.OrderItemMapper;
+import com.drinkmall.mapper.OrderMapper;
+import com.drinkmall.mapper.OperationLogMapper;
+import com.drinkmall.mapper.ProductMapper;
+import com.drinkmall.service.PhaseOneCoreService;
+import com.drinkmall.service.LevelService;
+import com.drinkmall.service.RewardService;
 import com.drinkmall.service.admin.AdminOrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +47,10 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     private final AftersaleMapper aftersaleMapper;
     private final ProductMapper productMapper;
     private final AddressMapper addressMapper;
+    private final PhaseOneCoreService phaseOneCoreService;
+    private final OperationLogMapper operationLogMapper;
+    private final LevelService levelService;
+    private final RewardService rewardService;
 
     @Override
     public IPage<OrderResponse> getOrders(String status, String orderNo, Long userId, String startDate, String endDate, Integer page, Integer size) {
@@ -45,8 +62,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         if (startDate != null) wrapper.ge(Order::getCreatedAt, LocalDateTime.parse(startDate + "T00:00:00"));
         if (endDate != null) wrapper.le(Order::getCreatedAt, LocalDateTime.parse(endDate + "T23:59:59"));
         wrapper.orderByDesc(Order::getCreatedAt);
-        Page<Order> orders = orderMapper.selectPage(pageParam, wrapper);
-        return orders.convert(this::convertToResponse);
+        return orderMapper.selectPage(pageParam, wrapper).convert(this::convertToResponse);
     }
 
     @Override
@@ -58,15 +74,35 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
     @Override
     @Transactional
+    public void confirmOfflineTransfer(Long orderId, Long adminUserId, String paymentNo) {
+        Order order = orderMapper.selectById(orderId);
+        if (order == null) throw new BusinessException(404, "订单不存在");
+        if (!OrderStatus.PENDING.getCode().equals(order.getStatus())) return;
+        if (!PaymentMethod.OFFLINE_CORPORATE.getCode().equals(order.getPaymentMethod())) {
+            throw new BusinessException(400, "仅线下对公转账订单可后台确认");
+        }
+        order.setStatus(OrderStatus.PAID.getCode());
+        order.setPaymentNo(paymentNo);
+        order.setPaymentTime(LocalDateTime.now());
+        order.setOfflineConfirmedBy(adminUserId);
+        order.setOfflineConfirmedAt(LocalDateTime.now());
+        orderMapper.updateById(order);
+        afterOrderPaid(order);
+        logOperation("offline_confirm", orderId, "paymentNo=" + paymentNo);
+    }
+
+    @Override
+    @Transactional
     public void shipOrder(Long orderId, String logisticsCompany, String logisticsNo) {
         Order order = orderMapper.selectById(orderId);
         if (order == null) throw new BusinessException(404, "订单不存在");
-        if (!"paid".equals(order.getStatus())) throw new BusinessException(400, "只能发货已支付订单");
-        order.setStatus("shipped");
+        if (!OrderStatus.PAID.getCode().equals(order.getStatus())) throw new BusinessException(400, "只能发货已支付订单");
+        order.setStatus(OrderStatus.SHIPPED.getCode());
         order.setLogisticsCompany(logisticsCompany);
         order.setLogisticsNo(logisticsNo);
         order.setShipTime(LocalDateTime.now());
         orderMapper.updateById(order);
+        logOperation("ship", orderId, logisticsCompany + "/" + logisticsNo);
     }
 
     @Override
@@ -74,13 +110,29 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     public void cancelOrder(Long orderId, String reason) {
         Order order = orderMapper.selectById(orderId);
         if (order == null) throw new BusinessException(404, "订单不存在");
-        if ("completed".equals(order.getStatus()) || "cancelled".equals(order.getStatus()))
+        if (OrderStatus.COMPLETED.getCode().equals(order.getStatus()) || OrderStatus.CANCELLED.getCode().equals(order.getStatus())) {
             throw new BusinessException(400, "订单已完成或已取消");
-        order.setStatus("cancelled");
+        }
+        order.setStatus(OrderStatus.CANCELLED.getCode());
         order.setCancelReason(reason);
         order.setCancelTime(LocalDateTime.now());
         orderMapper.updateById(order);
         restoreStock(orderId);
+        rewardService.rollbackOrderRewards(orderId, "admin_cancel_order");
+        logOperation("cancel", orderId, reason);
+    }
+
+    @Override
+    @Transactional
+    public void completeOrder(Long orderId) {
+        Order order = orderMapper.selectById(orderId);
+        if (order == null) throw new BusinessException(404, "订单不存在");
+        if (OrderStatus.CANCELLED.getCode().equals(order.getStatus())) throw new BusinessException(400, "已取消订单不能完成");
+        order.setStatus(OrderStatus.COMPLETED.getCode());
+        order.setCompleteTime(LocalDateTime.now());
+        orderMapper.updateById(order);
+        rewardService.unfreezeDueRewards(LocalDateTime.now());
+        logOperation("complete", orderId, "后台完成订单");
     }
 
     @Override
@@ -88,9 +140,10 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     public void modifyPrice(Long orderId, BigDecimal newPrice) {
         Order order = orderMapper.selectById(orderId);
         if (order == null) throw new BusinessException(404, "订单不存在");
-        if (!"pending".equals(order.getStatus())) throw new BusinessException(400, "只能修改待付款订单价格");
+        if (!OrderStatus.PENDING.getCode().equals(order.getStatus())) throw new BusinessException(400, "只能修改待付款订单价格");
         order.setPayAmount(newPrice);
         orderMapper.updateById(order);
+        logOperation("modify_price", orderId, "newPrice=" + newPrice);
     }
 
     @Override
@@ -113,9 +166,10 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         aftersaleMapper.updateById(aftersale);
         Order order = orderMapper.selectById(aftersale.getOrderId());
         if (order != null) {
-            order.setStatus("refunded");
+            order.setStatus(OrderStatus.AFTERSALE.getCode());
             orderMapper.updateById(order);
             restoreStock(aftersale.getOrderId());
+            rewardService.rollbackOrderRewards(aftersale.getOrderId(), "aftersale_approved");
         }
     }
 
@@ -134,12 +188,23 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     public Map<String, Object> getStatistics() {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalOrders", orderMapper.selectCount(null));
-        stats.put("pendingOrders", orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getStatus, "pending")));
-        stats.put("paidOrders", orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getStatus, "paid")));
-        stats.put("shippedOrders", orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getStatus, "shipped")));
-        stats.put("completedOrders", orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getStatus, "completed")));
-        stats.put("cancelledOrders", orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getStatus, "cancelled")));
+        stats.put("pendingOrders", orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getStatus, OrderStatus.PENDING.getCode())));
+        stats.put("paidOrders", orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getStatus, OrderStatus.PAID.getCode())));
+        stats.put("shippedOrders", orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getStatus, OrderStatus.SHIPPED.getCode())));
+        stats.put("completedOrders", orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getStatus, OrderStatus.COMPLETED.getCode())));
+        stats.put("cancelledOrders", orderMapper.selectCount(new LambdaQueryWrapper<Order>().eq(Order::getStatus, OrderStatus.CANCELLED.getCode())));
         return stats;
+    }
+
+    private void afterOrderPaid(Order order) {
+        String zoneType = order.getZoneType() == null ? orderPrimaryZone(order.getId()) : order.getZoneType();
+        if (ProductZoneType.MAIN.getCode().equals(zoneType)) {
+            levelService.recordMainProductPaid(order.getUserId(), order.getPayAmount(), order.getOrderNo());
+        }
+        if (ProductZoneType.INVESTMENT.getCode().equals(zoneType)) {
+            levelService.upgradeByInvestmentOrder(order);
+        }
+        rewardService.settleOrderRewards(order);
     }
 
     private void restoreStock(Long orderId) {
@@ -148,7 +213,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
             Product product = productMapper.selectById(item.getProductId());
             if (product != null) {
                 product.setStock(product.getStock() + item.getQuantity());
-                product.setSales(product.getSales() - item.getQuantity());
+                product.setSales(Math.max(0, product.getSales() - item.getQuantity()));
                 productMapper.updateById(product);
             }
         }
@@ -160,8 +225,11 @@ public class AdminOrderServiceImpl implements AdminOrderService {
                 .orderId(order.getId())
                 .orderNo(order.getOrderNo())
                 .status(order.getStatus())
+                .zoneType(order.getZoneType())
+                .paymentMethod(order.getPaymentMethod())
                 .totalAmount(order.getTotalAmount())
                 .payAmount(order.getPayAmount())
+                .pointsAmount(order.getPointsAmount())
                 .items(items.stream().map(i -> OrderItemResponse.builder()
                         .itemId(i.getId())
                         .productId(i.getProductId())
@@ -170,10 +238,42 @@ public class AdminOrderServiceImpl implements AdminOrderService {
                         .price(i.getPrice())
                         .quantity(i.getQuantity())
                         .totalAmount(i.getTotalAmount())
+                        .zoneType(i.getZoneType())
+                        .giftPoints(i.getGiftPoints())
+                        .pointsAmount(i.getPointsAmount())
                         .build()).collect(Collectors.toList()))
                 .createdAt(order.getCreatedAt())
                 .paymentTime(order.getPaymentTime())
                 .shipTime(order.getShipTime())
+                .logisticsCompany(order.getLogisticsCompany())
+                .logisticsNo(order.getLogisticsNo())
                 .build();
+    }
+
+    private String orderPrimaryZone(Long orderId) {
+        List<OrderItem> items = orderItemMapper.selectList(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId));
+        if (items.isEmpty()) return "";
+        if (items.get(0).getZoneType() != null) return items.get(0).getZoneType();
+        Product product = productMapper.selectById(items.get(0).getProductId());
+        return product == null ? "" : product.getZoneType();
+    }
+
+    private void logOperation(String action, Long orderId, String detail) {
+        OperationLog log = new OperationLog();
+        log.setAdminUserId(currentAdminId());
+        log.setModule("order");
+        log.setAction(action);
+        log.setTargetId(String.valueOf(orderId));
+        log.setDetail(detail);
+        log.setCreatedAt(LocalDateTime.now());
+        operationLogMapper.insert(log);
+    }
+
+    private Long currentAdminId() {
+        try {
+            return StpUtil.getLoginIdAsLong();
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 }

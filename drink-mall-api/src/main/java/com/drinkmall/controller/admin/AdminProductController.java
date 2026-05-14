@@ -60,6 +60,25 @@ public class AdminProductController {
         return Result.success(null);
     }
 
+    @PutMapping("/{productId}/zone")
+    public Result<Void> updateZone(
+            @PathVariable Long productId,
+            @RequestParam String zoneType,
+            @RequestParam(required = false) String investmentLevelCode,
+            @RequestParam(required = false) Integer giftPointsPrice) {
+        adminProductService.updateZone(productId, zoneType, investmentLevelCode, giftPointsPrice);
+        return Result.success(null);
+    }
+
+    @PutMapping("/{productId}/payment-methods")
+    public Result<Void> updatePaymentMethods(
+            @PathVariable Long productId,
+            @RequestParam String allowedPaymentMethods,
+            @RequestParam(required = false) Boolean wineBeanPayable) {
+        adminProductService.updatePaymentMethods(productId, allowedPaymentMethods, wineBeanPayable);
+        return Result.success(null);
+    }
+
     @PutMapping("/{productId}/stock")
     public Result<Void> adjustStock(@PathVariable Long productId, @RequestParam Integer quantity, @RequestParam String reason) {
         adminProductService.adjustStock(productId, quantity, reason);

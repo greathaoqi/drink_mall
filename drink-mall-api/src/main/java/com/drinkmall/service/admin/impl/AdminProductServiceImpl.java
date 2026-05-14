@@ -1,12 +1,15 @@
 package com.drinkmall.service.admin.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.BusinessException;
 import com.drinkmall.entity.Category;
+import com.drinkmall.entity.OperationLog;
 import com.drinkmall.entity.Product;
 import com.drinkmall.entity.StockLog;
 import com.drinkmall.mapper.CategoryMapper;
+import com.drinkmall.mapper.OperationLogMapper;
 import com.drinkmall.mapper.ProductMapper;
 import com.drinkmall.mapper.StockLogMapper;
 import com.drinkmall.service.admin.AdminProductService;
@@ -26,6 +29,7 @@ public class AdminProductServiceImpl implements AdminProductService {
     private final ProductMapper productMapper;
     private final CategoryMapper categoryMapper;
     private final StockLogMapper stockLogMapper;
+    private final OperationLogMapper operationLogMapper;
 
     @Override
     public Page<Product> getProducts(Long categoryId, String zoneType, Integer status, String keyword, Integer page, Integer size) {
@@ -50,7 +54,8 @@ public class AdminProductServiceImpl implements AdminProductService {
         product.setCreatedAt(LocalDateTime.now());
         product.setSales(0);
         productMapper.insert(product);
-        logStockChange(product.getId(), product.getStock(), "创建商品初始库存");
+        logStockChange(product.getId(), product.getStock(), "create", "创建商品初始库存");
+        logOperation("create", product.getId(), "创建商品");
         return product;
     }
 
@@ -63,8 +68,9 @@ public class AdminProductServiceImpl implements AdminProductService {
         productMapper.updateById(product);
         if (product.getStock() != null && !product.getStock().equals(existing.getStock())) {
             int diff = product.getStock() - existing.getStock();
-            logStockChange(product.getId(), diff, "管理员调整库存");
+            logStockChange(product.getId(), diff, "adjust", "管理员调整库存");
         }
+        logOperation("update", product.getId(), "编辑商品");
         return product;
     }
 
@@ -72,15 +78,43 @@ public class AdminProductServiceImpl implements AdminProductService {
     @Transactional
     public void deleteProduct(Long productId) {
         productMapper.deleteById(productId);
+        logOperation("delete", productId, "删除商品");
     }
 
     @Override
+    @Transactional
     public void updateStatus(Long productId, Integer status) {
         Product product = productMapper.selectById(productId);
         if (product == null) throw new BusinessException(404, "商品不存在");
         product.setStatus(status);
         product.setUpdatedAt(LocalDateTime.now());
         productMapper.updateById(product);
+        logOperation("status", productId, "status=" + status);
+    }
+
+    @Override
+    @Transactional
+    public void updateZone(Long productId, String zoneType, String investmentLevelCode, Integer giftPointsPrice) {
+        Product product = productMapper.selectById(productId);
+        if (product == null) throw new BusinessException(404, "商品不存在");
+        product.setZoneType(zoneType);
+        product.setInvestmentLevelCode(investmentLevelCode);
+        product.setGiftPointsPrice(giftPointsPrice);
+        product.setUpdatedAt(LocalDateTime.now());
+        productMapper.updateById(product);
+        logOperation("zone", productId, "zoneType=" + zoneType + ", investmentLevelCode=" + investmentLevelCode + ", giftPointsPrice=" + giftPointsPrice);
+    }
+
+    @Override
+    @Transactional
+    public void updatePaymentMethods(Long productId, String allowedPaymentMethods, Boolean wineBeanPayable) {
+        Product product = productMapper.selectById(productId);
+        if (product == null) throw new BusinessException(404, "商品不存在");
+        product.setAllowedPaymentMethods(allowedPaymentMethods);
+        product.setWineBeanPayable(Boolean.TRUE.equals(wineBeanPayable));
+        product.setUpdatedAt(LocalDateTime.now());
+        productMapper.updateById(product);
+        logOperation("payment_methods", productId, "allowedPaymentMethods=" + allowedPaymentMethods + ", wineBeanPayable=" + wineBeanPayable);
     }
 
     @Override
@@ -91,7 +125,8 @@ public class AdminProductServiceImpl implements AdminProductService {
         product.setStock(product.getStock() + quantity);
         product.setUpdatedAt(LocalDateTime.now());
         productMapper.updateById(product);
-        logStockChange(productId, quantity, reason);
+        logStockChange(productId, quantity, "adjust", reason);
+        logOperation("stock", productId, reason);
     }
 
     @Override
@@ -109,32 +144,64 @@ public class AdminProductServiceImpl implements AdminProductService {
     }
 
     @Override
+    @Transactional
     public Category createCategory(Category category) {
         category.setCreatedAt(LocalDateTime.now());
         categoryMapper.insert(category);
+        logOperation("category_create", category.getId(), "创建分类");
         return category;
     }
 
     @Override
+    @Transactional
     public Category updateCategory(Category category) {
         category.setUpdatedAt(LocalDateTime.now());
         categoryMapper.updateById(category);
+        logOperation("category_update", category.getId(), "编辑分类");
         return category;
     }
 
     @Override
+    @Transactional
     public void deleteCategory(Long categoryId) {
         long count = productMapper.selectCount(new LambdaQueryWrapper<Product>().eq(Product::getCategoryId, categoryId));
         if (count > 0) throw new BusinessException(400, "该分类下有商品，无法删除");
         categoryMapper.deleteById(categoryId);
+        logOperation("category_delete", categoryId, "删除分类");
     }
 
-    private void logStockChange(Long productId, Integer quantity, String reason) {
+    private void logStockChange(Long productId, Integer quantity, String changeType, String reason) {
+        Product product = productMapper.selectById(productId);
+        int afterStock = product == null || product.getStock() == null ? 0 : product.getStock();
+        int beforeStock = afterStock - (quantity == null ? 0 : quantity);
         StockLog log = new StockLog();
         log.setProductId(productId);
+        log.setChangeType(changeType);
         log.setChangeQuantity(quantity);
+        log.setBeforeStock(beforeStock);
+        log.setAfterStock(afterStock);
+        log.setOperator(String.valueOf(currentAdminId()));
         log.setRemark(reason);
         log.setCreatedAt(LocalDateTime.now());
         stockLogMapper.insert(log);
+    }
+
+    private void logOperation(String action, Long targetId, String detail) {
+        OperationLog log = new OperationLog();
+        log.setAdminUserId(currentAdminId());
+        log.setModule("product");
+        log.setAction(action);
+        log.setTargetId(String.valueOf(targetId));
+        log.setDetail(detail);
+        log.setCreatedAt(LocalDateTime.now());
+        operationLogMapper.insert(log);
+    }
+
+    private Long currentAdminId() {
+        try {
+            return StpUtil.getLoginIdAsLong();
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 }

@@ -17,6 +17,9 @@ public class OrderItem {
     private BigDecimal price;
     private Integer quantity;
     private BigDecimal totalAmount;
+    private String zoneType;
+    private Integer giftPoints;
+    private Integer pointsAmount;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 }

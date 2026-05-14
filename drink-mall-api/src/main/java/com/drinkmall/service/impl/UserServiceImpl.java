@@ -5,20 +5,25 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.BusinessException;
 import com.drinkmall.dto.DistributionLevelItemResponse;
 import com.drinkmall.dto.DistributionLevelOverviewResponse;
+import com.drinkmall.dto.InviterResponse;
 import com.drinkmall.dto.MemberCenterResponse;
+import com.drinkmall.dto.TeamMemberResponse;
 import com.drinkmall.dto.UserInfoResponse;
 import com.drinkmall.dto.WithdrawalRequest;
 import com.drinkmall.entity.BalanceLog;
 import com.drinkmall.entity.Order;
 import com.drinkmall.entity.PointsLog;
+import com.drinkmall.entity.SysConfig;
 import com.drinkmall.entity.User;
 import com.drinkmall.entity.Withdrawal;
 import com.drinkmall.mapper.BalanceLogMapper;
 import com.drinkmall.mapper.OrderMapper;
 import com.drinkmall.mapper.PointsLogMapper;
+import com.drinkmall.mapper.SysConfigMapper;
 import com.drinkmall.mapper.UserMapper;
 import com.drinkmall.mapper.WithdrawalMapper;
 import com.drinkmall.service.UserService;
+import com.drinkmall.service.WithdrawalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,6 +45,8 @@ public class UserServiceImpl implements UserService {
     private final PointsLogMapper pointsLogMapper;
     private final WithdrawalMapper withdrawalMapper;
     private final OrderMapper orderMapper;
+    private final SysConfigMapper sysConfigMapper;
+    private final WithdrawalService withdrawalService;
 
     private static final BigDecimal COUNTY_TARGET = new BigDecimal("50000.00");
     private static final BigDecimal CITY_TARGET = new BigDecimal("150000.00");
@@ -106,7 +113,7 @@ public class UserServiceImpl implements UserService {
                         .maskedPhone(maskPhone(user.getPhone()))
                         .memberLevelCode(levelCode)
                         .memberLevelName(levelName(levelCode))
-                        .memberTitle(levelName(levelCode) + " · 生态合伙人")
+                        .memberTitle(levelName(levelCode) + " 路 鐢熸€佸悎浼欎汉")
                         .ageVerified(user.getAgeVerified())
                         .build())
                 .summary(MemberCenterResponse.Summary.builder()
@@ -162,6 +169,33 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public InviterResponse getInviter(Long userId) {
+        User user = requireUser(userId);
+        if (user.getInviterId() == null) {
+            return null;
+        }
+        return InviterResponse.fromUser(userMapper.selectById(user.getInviterId()));
+    }
+
+    @Override
+    public List<TeamMemberResponse> getDirectInvitees(Long userId) {
+        requireUser(userId);
+        return userMapper.selectDirectInvitees(userId).stream().map(TeamMemberResponse::fromUser).toList();
+    }
+
+    @Override
+    public List<TeamMemberResponse> getIndirectInvitees(Long userId) {
+        requireUser(userId);
+        return userMapper.selectIndirectInvitees(userId).stream().map(TeamMemberResponse::fromUser).toList();
+    }
+
+    @Override
+    public Long getTeamTotal(Long userId) {
+        requireUser(userId);
+        return userMapper.countTeamMembers(userId);
+    }
+
+    @Override
     @Transactional
     public void updateProfile(Long userId, String nickname) {
         User user = userMapper.selectById(userId);
@@ -174,44 +208,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void applyWithdrawal(Long userId, WithdrawalRequest request) {
-        User user = userMapper.selectById(userId);
-        if (user == null) throw new BusinessException(404, "用户不存在");
-        BigDecimal balance = user.getBalance() != null ? user.getBalance() : BigDecimal.ZERO;
-        if (balance.compareTo(request.getAmount()) < 0) {
-            throw new BusinessException(400, "余额不足");
-        }
-        long pending = withdrawalMapper.selectCount(
-            new LambdaQueryWrapper<Withdrawal>()
-                .eq(Withdrawal::getUserId, userId)
-                .eq(Withdrawal::getStatus, "pending")
-        );
-        if (pending > 0) throw new BusinessException(400, "您有待审核的提现申请，请等待处理后再提交");
-
-        user.setBalance(balance.subtract(request.getAmount()));
-        BigDecimal frozen = user.getFrozenBalance() != null ? user.getFrozenBalance() : BigDecimal.ZERO;
-        user.setFrozenBalance(frozen.add(request.getAmount()));
-        user.setUpdatedAt(LocalDateTime.now());
-        userMapper.updateById(user);
-
-        Withdrawal withdrawal = new Withdrawal();
-        withdrawal.setUserId(userId);
-        withdrawal.setAmount(request.getAmount());
-        withdrawal.setBankName(request.getBankName());
-        withdrawal.setBankAccount(request.getBankAccount());
-        withdrawal.setAccountName(request.getAccountName());
-        withdrawal.setStatus("pending");
-        withdrawal.setCreatedAt(LocalDateTime.now());
-        withdrawalMapper.insert(withdrawal);
-
-        BalanceLog balanceLog = new BalanceLog();
-        balanceLog.setUserId(userId);
-        balanceLog.setChangeType("withdrawal");
-        balanceLog.setAmount(request.getAmount().negate());
-        balanceLog.setBeforeBalance(balance);
-        balanceLog.setAfterBalance(balance.subtract(request.getAmount()));
-        balanceLog.setRemark("申请提现");
-        balanceLog.setCreatedAt(LocalDateTime.now());
-        balanceLogMapper.insert(balanceLog);
+        withdrawalService.submit(userId, request);
     }
 
     @Override
@@ -300,5 +297,13 @@ public class UserServiceImpl implements UserService {
                         "可提交体验店申请"
                 ))
                 .build();
+    }
+
+    private boolean realNameEnabled() {
+        SysConfig config = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, "real_name.enabled"));
+        if (config == null || config.getConfigValue() == null || config.getConfigValue().isBlank()) {
+            throw new BusinessException(500, "绯荤粺閰嶇疆缂哄け: real_name.enabled");
+        }
+        return Boolean.parseBoolean(config.getConfigValue());
     }
 }

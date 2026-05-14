@@ -14,6 +14,8 @@ public class User {
 
     private String openid;
 
+    private String unionid;
+
     private String nickname;
 
     @TableField("avatar_url")
@@ -35,6 +37,33 @@ public class User {
 
     @TableField("df_balance")
     private BigDecimal dfBalance;
+
+    @TableField("wine_bean_balance")
+    private BigDecimal wineBeanBalance;
+
+    @TableField("option_balance")
+    private BigDecimal optionBalance;
+
+    @TableField("inviter_id")
+    private Long inviterId;
+
+    @TableField("invite_code")
+    private String inviteCode;
+
+    @TableField("register_invite_code")
+    private String registerInviteCode;
+
+    @TableField("register_source")
+    private String registerSource;
+
+    @TableField("seed_account")
+    private Boolean seedAccount;
+
+    @TableField("real_name_status")
+    private String realNameStatus;
+
+    @TableField("main_zone_paid_amount")
+    private BigDecimal mainZonePaidAmount;
 
     @TableField("age_verified")
     private Boolean ageVerified;

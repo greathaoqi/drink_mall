@@ -13,6 +13,8 @@ public interface AdminProductService {
     Product updateProduct(Product product);
     void deleteProduct(Long productId);
     void updateStatus(Long productId, Integer status);
+    void updateZone(Long productId, String zoneType, String investmentLevelCode, Integer giftPointsPrice);
+    void updatePaymentMethods(Long productId, String allowedPaymentMethods, Boolean wineBeanPayable);
     void adjustStock(Long productId, Integer quantity, String reason);
     Page<StockLog> getStockLogs(Long productId, Integer page, Integer size);
     List<Category> getCategories();

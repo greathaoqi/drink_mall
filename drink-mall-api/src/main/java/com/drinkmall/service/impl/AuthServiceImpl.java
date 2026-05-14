@@ -8,6 +8,7 @@ import com.drinkmall.dto.LoginResponse;
 import com.drinkmall.entity.User;
 import com.drinkmall.mapper.UserMapper;
 import com.drinkmall.service.AuthService;
+import com.drinkmall.service.PhaseOneCoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.error.WxErrorException;
@@ -26,6 +27,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final WxMaService wxMaService;
     private final UserMapper userMapper;
+    private final PhaseOneCoreService phaseOneCoreService;
 
     @Override
     @Transactional
@@ -47,15 +49,7 @@ public class AuthServiceImpl implements AuthService {
 
             boolean isNewUser = false;
             if (user == null) {
-                user = new User();
-                user.setOpenid(openid);
-                user.setBalance(BigDecimal.ZERO);
-                user.setPoints(0);
-                user.setAgeVerified(false);
-                user.setStatus(1);
-                user.setCreatedAt(LocalDateTime.now());
-                user.setUpdatedAt(LocalDateTime.now());
-                userMapper.insert(user);
+                user = phaseOneCoreService.registerUser(openid, session.getUnionid(), request.getInviterId(), request.getInviteCode(), request.getRegisterSource(), false);
                 isNewUser = true;
                 log.info("Created new user with openid: {}", openid);
             }
@@ -86,12 +80,24 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             user = new User();
             user.setOpenid("demo-openid");
+            user.setUnionid("demo-unionid");
             user.setNickname("演示用户");
             user.setAvatarUrl("https://img.yzcdn.cn/vant/cat.jpeg");
             user.setPhone("13800138000");
             user.setBalance(new BigDecimal("9999.00"));
             user.setFrozenBalance(BigDecimal.ZERO);
             user.setPoints(1888);
+            user.setDistributionLevel("normal");
+            user.setTeamPerformance(BigDecimal.ZERO);
+            user.setDfBalance(new BigDecimal("1500.00"));
+            user.setWineBeanBalance(BigDecimal.ZERO);
+            user.setOptionBalance(BigDecimal.ZERO);
+            user.setInviteCode("DEMO1001");
+            user.setRegisterInviteCode(null);
+            user.setRegisterSource("demo");
+            user.setSeedAccount(true);
+            user.setRealNameStatus("approved");
+            user.setMainZonePaidAmount(BigDecimal.ZERO);
             user.setAgeVerified(true);
             user.setAgeVerifiedAt(LocalDateTime.now());
             user.setStatus(1);

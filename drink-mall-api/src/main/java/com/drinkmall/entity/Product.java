@@ -34,6 +34,21 @@ public class Product {
 
     private String zoneType;
 
+    @TableField("allowed_payment_methods")
+    private String allowedPaymentMethods;
+
+    @TableField("gift_points")
+    private Integer giftPoints;
+
+    @TableField("gift_points_price")
+    private Integer giftPointsPrice;
+
+    @TableField("investment_level_code")
+    private String investmentLevelCode;
+
+    @TableField("wine_bean_payable")
+    private Boolean wineBeanPayable;
+
     private Integer status;
 
     private Integer sortOrder;

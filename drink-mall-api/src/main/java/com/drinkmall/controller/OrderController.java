@@ -25,6 +25,13 @@ public class OrderController {
         return Result.success(orderService.createOrder(userId, request));
     }
 
+    @PostMapping("/preview")
+    @SaCheckLogin
+    public Result<CheckoutPreviewResponse> previewOrder(@Valid @RequestBody CreateOrderRequest request) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        return Result.success(orderService.previewOrder(userId, request));
+    }
+
     @GetMapping
     @SaCheckLogin
     public Result<IPage<OrderResponse>> getOrders(
@@ -60,9 +67,12 @@ public class OrderController {
 
     @PostMapping("/{orderId}/pay")
     @SaCheckLogin
-    public Result<PayResponse> payOrder(@PathVariable Long orderId) {
+    public Result<PayResponse> payOrder(@PathVariable Long orderId, @Valid @RequestBody(required = false) PayOrderRequest request) {
         Long userId = StpUtil.getLoginIdAsLong();
-        return Result.success(orderService.getPayParams(userId, orderId));
+        if (request == null) {
+            return Result.success(orderService.getPayParams(userId, orderId));
+        }
+        return Result.success(orderService.payOrder(userId, orderId, request));
     }
 
     @PostMapping("/{orderId}/balance-pay")

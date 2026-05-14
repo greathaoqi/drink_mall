@@ -7,6 +7,8 @@ import java.util.List;
 public class CreateOrderRequest {
     private Long addressId;
     private List<CartItemInfo> items;
+    private List<Long> cartIds;
+    private String paymentMethod;
     private String remark;
 
     @Data
