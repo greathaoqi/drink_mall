@@ -1,99 +1,59 @@
 <template>
-  <view class="wallet-page">
-    <view class="balance-card">
-      <view class="balance-row">
-        <view class="balance-item">
-          <text class="amount">¥{{ userInfo.balance || '0.00' }}</text>
-          <text class="label">可用余额</text>
-        </view>
-        <view class="divider-v" />
-        <view class="balance-item">
-          <text class="amount frozen">¥{{ userInfo.frozenBalance || '0.00' }}</text>
-          <text class="label">冻结余额</text>
-        </view>
-        <view class="divider-v" />
-        <view class="balance-item">
-          <text class="amount points">{{ userInfo.points || 0 }}</text>
-          <text class="label">积分</text>
-        </view>
-      </view>
-      <button class="withdraw-btn" @click="goWithdraw">申请提现</button>
+  <view class="page">
+    <view class="hero">
+      <text class="eyebrow">资产独立记账</text>
+      <text class="hero-title">我的资产</text>
+      <text class="hero-copy">余额、DF、酒豆、积分、期权分别展示，不做组合支付或自动互通。</text>
     </view>
-
-    <view class="menu-section">
-      <view class="menu-item" @click="goHistory('balance')">
-        <text class="menu-label">余额流水</text>
-        <uni-icons type="right" size="16" color="#ccc" />
-      </view>
-      <view class="menu-item" @click="goHistory('points')">
-        <text class="menu-label">积分记录</text>
-        <uni-icons type="right" size="16" color="#ccc" />
-      </view>
-      <view class="menu-item" @click="goHistory('withdrawal')">
-        <text class="menu-label">提现记录</text>
-        <uni-icons type="right" size="16" color="#ccc" />
+    <view class="grid">
+      <view v-for="a in assets" :key="a.key" class="asset" @click="history(a.key)">
+        <text class="asset-name">{{ a.name }}</text>
+        <text class="price">{{ a.value }}</text>
+        <text class="muted">{{ a.tip }}</text>
       </view>
     </view>
+    <button class="primary" @click="goWithdraw">提现申请</button>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { http } from '@/utils/request'
+import { assetApi } from '@/services/asset'
+import { useUserStore } from '@/store/user'
 
-const userInfo = ref<{ balance?: string; frozenBalance?: string; points?: number }>({})
-
-onShow(async () => {
-  const res = await http.get('/user/info')
-  if (res.code === 200) userInfo.value = res.data || {}
+const data = ref<any>({})
+const assets = computed(() => {
+  const u = useUserStore().userInfo || {}
+  const d = data.value
+  const arr = [
+    { key: 'balance', name: '余额', value: d.balance ?? u.balance ?? 0, tip: '可提现余额' },
+    { key: 'frozenBalance', name: '冻结余额', value: d.frozenBalance ?? u.frozenBalance ?? 0, tip: '售后或审核冻结' },
+    { key: 'df', name: 'DF', value: d.df ?? u.df ?? 0, tip: '以后端配置流转' },
+    { key: 'wineBean', name: '酒豆', value: d.wineBean ?? u.wineBean ?? 0, tip: '购买指定商品' },
+    { key: 'points', name: '积分', value: d.points ?? u.points ?? 0, tip: '纯积分兑换礼包' }
+  ]
+  if (d.showOption || u.showOption) arr.push({ key: 'option', name: '期权', value: d.optionValue ?? u.optionValue ?? 0, tip: '按后端配置展示' })
+  return arr
 })
 
-const goWithdraw = () => {
-  uni.navigateTo({ url: '/pages/wallet/withdraw/index' })
-}
-
-const goHistory = (tab: string) => {
-  uni.navigateTo({ url: `/pages/wallet/history/index?tab=${tab}` })
-}
+function history(t: string) { uni.navigateTo({ url: '/pages/wallet/history/index?type=' + t }) }
+function goWithdraw() { uni.navigateTo({ url: '/pages/wallet/withdraw/index' }) }
+onShow(async () => { try { data.value = (await assetApi.overview()).data || {} } catch {} })
 </script>
 
 <style scoped lang="scss">
-.wallet-page { background: #f5f5f5; min-height: 100vh; }
-.balance-card {
-  background: linear-gradient(135deg, #2b1608, #8a4f22);
-  padding: 40rpx 30rpx 30rpx;
-  color: #fff;
-}
-.balance-row { display: flex; justify-content: space-around; margin-bottom: 40rpx; }
-.balance-item { display: flex; flex-direction: column; align-items: center; }
-.amount { font-size: 40rpx; font-weight: 700; }
-.frozen { opacity: 0.7; }
-.points { color: #ffd700; }
-.label { font-size: 24rpx; opacity: 0.8; margin-top: 8rpx; }
-.divider-v { width: 1rpx; background: rgba(255,255,255,0.3); margin: 10rpx 0; }
-.withdraw-btn {
-  width: 100%;
-  background: rgba(255,255,255,0.2);
-  color: #fff;
-  border: 1rpx solid rgba(255,255,255,0.5);
-  border-radius: 40rpx;
-  font-size: 28rpx;
-  padding: 16rpx 0;
-}
-.menu-section {
-  background: #fff;
-  margin: 20rpx;
-  border-radius: 12rpx;
-  overflow: hidden;
-}
-.menu-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 30rpx;
-  border-bottom: 1rpx solid #f5f5f5;
-}
-.menu-item:last-child { border-bottom: none; }
-.menu-label { font-size: 30rpx; color: #333; }
+.page{min-height:100vh;background:#f6f1e8;color:#24170c;padding:24rpx 20rpx 40rpx}
+.hero{background:#2b1207;color:#fff;border-radius:18rpx;padding:34rpx 30rpx;margin-bottom:20rpx}
+.eyebrow{display:block;color:#f0bf55;font-size:23rpx}
+.hero-title{display:block;font-size:42rpx;font-weight:900;margin-top:10rpx}
+.hero-copy{display:block;color:#e8d6b8;font-size:24rpx;line-height:1.5;margin-top:14rpx}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18rpx}
+.asset{background:#fff;padding:26rpx;border-radius:16rpx;min-height:178rpx;box-shadow:0 8rpx 24rpx rgba(58,32,12,.06)}
+.asset-name{display:block;font-weight:800;font-size:28rpx}
+.price{display:block;color:#b97700;font-weight:900;font-size:36rpx;margin-top:14rpx;word-break:break-all}
+.muted{display:block;color:#8d8175;font-size:23rpx;line-height:1.35;margin-top:10rpx}
+button{margin-top:28rpx;height:84rpx;line-height:84rpx;width:100%;border:0;border-radius:999rpx}
+.primary{background:#b97700;color:#fff}
+button:after{border:0}
 </style>

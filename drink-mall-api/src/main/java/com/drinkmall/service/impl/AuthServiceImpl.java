@@ -49,7 +49,7 @@ public class AuthServiceImpl implements AuthService {
 
             boolean isNewUser = false;
             if (user == null) {
-                user = phaseOneCoreService.registerUser(openid, session.getUnionid(), request.getInviterId(), request.getInviteCode(), request.getRegisterSource(), false);
+                user = phaseOneCoreService.registerUser(openid, session.getUnionid(), request.getInviterId(), request.getInviteCode(), request.resolveRegisterSource(), false);
                 isNewUser = true;
                 log.info("Created new user with openid: {}", openid);
             }

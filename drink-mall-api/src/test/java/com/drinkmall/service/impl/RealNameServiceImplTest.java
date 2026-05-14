@@ -2,6 +2,7 @@ package com.drinkmall.service.impl;
 
 import com.drinkmall.common.BusinessException;
 import com.drinkmall.dto.RealNameSubmitRequest;
+import com.drinkmall.entity.OperationLog;
 import com.drinkmall.entity.RealNameVerification;
 import com.drinkmall.entity.User;
 import com.drinkmall.enums.RealNameStatus;
@@ -81,6 +82,41 @@ class RealNameServiceImplTest {
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userMapper).updateById(captor.capture());
         assertThat(captor.getValue().getRealNameStatus()).isEqualTo(RealNameStatus.PENDING.getCode());
+    }
+
+    @Test
+    void rejectedUserCanSubmitAgainAndReturnsToPendingReview() {
+        User user = user(41L);
+        user.setRealNameStatus(RealNameStatus.REJECTED.getCode());
+        when(userMapper.selectById(41L)).thenReturn(user);
+        when(realNameVerificationMapper.selectCount(any())).thenReturn(0L);
+
+        RealNameVerification verification = realNameService.submit(41L, submitRequest());
+
+        assertThat(verification.getStatus()).isEqualTo(RealNameStatus.PENDING.getCode());
+        verify(realNameVerificationMapper).insert(verification);
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userMapper).updateById(captor.capture());
+        assertThat(captor.getValue().getRealNameStatus()).isEqualTo(RealNameStatus.PENDING.getCode());
+    }
+
+    @Test
+    void approvingPendingSubmissionUpdatesUserAndWritesOperationLog() {
+        RealNameVerification verification = verification(7L, 70L, "110101199001011239");
+        User user = user(70L);
+        when(realNameVerificationMapper.selectById(7L)).thenReturn(verification);
+        when(realNameVerificationMapper.selectCount(any())).thenReturn(0L);
+        when(userMapper.selectById(70L)).thenReturn(user);
+
+        realNameService.review(7L, 99L, true, null);
+
+        assertThat(verification.getStatus()).isEqualTo(RealNameStatus.APPROVED.getCode());
+        assertThat(user.getRealNameStatus()).isEqualTo(RealNameStatus.APPROVED.getCode());
+        assertThat(user.getAgeVerified()).isTrue();
+        ArgumentCaptor<OperationLog> log = ArgumentCaptor.forClass(OperationLog.class);
+        verify(operationLogMapper).insert(log.capture());
+        assertThat(log.getValue().getModule()).isEqualTo("real_name");
+        assertThat(log.getValue().getAction()).isEqualTo("approve");
     }
 
     @Test

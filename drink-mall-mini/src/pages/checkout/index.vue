@@ -1,134 +1,138 @@
 <template>
-  <view class="checkout-page">
-    <view class="address-card" @click="selectAddress">
-      <template v-if="address">
-        <view class="receiver">{{ address.name }} {{ address.phone }}</view>
-        <view class="address">{{ address.province }}{{ address.city }}{{ address.district }}{{ address.detail }}</view>
-      </template>
-      <template v-else>
-        <view class="no-address">请选择收货地址</view>
-      </template>
-      <uni-icons type="right" />
+  <view class="page">
+    <view class="card address" @click="selectAddress">
+      <view>
+        <text class="title">收货地址</text>
+        <view v-if="address" class="muted">{{ address.name }} {{ address.phone }}\n{{ address.province }}{{ address.city }}{{ address.district }}{{ address.detail }}</view>
+        <view v-else class="muted">请选择收货地址</view>
+      </view>
+      <uni-icons type="right" size="18" color="#b97700" />
     </view>
 
-    <view class="goods-card">
-      <view v-for="item in cartItems" :key="item.cartId" class="goods-item">
-        <view class="goods-img"><view class="mini-bottle"></view></view>
-        <view class="goods-info">
-          <text class="goods-name">{{ item.productName }}</text>
-          <view class="goods-bottom">
-            <text class="goods-price">¥{{ item.price }}</text>
-            <text class="goods-quantity">x{{ item.quantity }}</text>
-          </view>
-        </view>
-      </view>
+    <view class="card" v-for="i in items" :key="i.cartId || i.productId">
+      <text class="title item-title">{{ i.productName || i.name }}</text>
+      <text class="muted">数量 x{{ i.quantity }}</text>
+      <text class="price">¥{{ i.price }}</text>
     </view>
 
-    <view class="summary-card">
-      <view class="summary-item">
-        <text>商品金额</text>
-        <text>¥{{ totalAmount }}</text>
-      </view>
-      <view class="summary-item">
-        <text>运费</text>
-        <text>包邮</text>
-      </view>
-      <view class="summary-item total">
-        <text>实付金额</text>
-        <text class="price">¥{{ totalAmount }}</text>
+    <PayMethodSelector v-model="payMethod" :methods="methods" title="支付方式" />
+
+    <view class="card">
+      <text class="muted">资产独立记账，禁止组合支付；请选择一种后端允许的支付方式。</text>
+      <view class="line"></view>
+      <view class="total-row">
+        <text>应付</text>
+        <text class="price total">¥{{ total }}</text>
       </view>
     </view>
 
-    <view class="bottom-bar">
-      <view class="total-info">
-        <text>合计: </text>
-        <text class="price">¥{{ totalAmount }}</text>
-      </view>
-      <button class="submit-btn" @click="handleSubmit">提交订单</button>
-    </view>
+    <button class="submit primary" :loading="submitting" @click="submit">提交订单</button>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import request from '@/utils/request'
+import PayMethodSelector from '@/components/PayMethodSelector/PayMethodSelector.vue'
+import { addressApi } from '@/services/address'
+import { cartApi } from '@/services/cart'
+import { orderApi } from '@/services/order'
+import { paymentApi } from '@/services/payment'
+import { listOf, money } from '@/utils/format'
 
-const cartItems = ref<any[]>([])
+const items = ref<any[]>([])
+const ids = ref<number[]>([])
 const address = ref<any>(null)
-const selectedIds = ref<number[]>([])
+const payMethod = ref('')
+const methods = ref<any[]>([])
+const submitting = ref(false)
 
-const totalAmount = computed(() => {
-  return cartItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)
-})
+const total = computed(() => money(items.value.reduce((s, i) => s + Number(i.price || 0) * Number(i.quantity || 1), 0)))
+const selectedMethod = computed(() => methods.value.find((m) => m.value === payMethod.value))
 
-const loadCartItems = async () => {
-  const res = await request.get('/cart')
-  const allItems = res.data?.items || []
-  cartItems.value = selectedIds.value.length > 0
-    ? allItems.filter((item: any) => selectedIds.value.includes(item.cartId))
-    : allItems.filter((item: any) => item.selected)
+function normalizeMethods(raw: any[]) {
+  return raw.map((m) => ({
+    value: m.value || m.code || m.payMethod || m.method,
+    label: m.label || m.name || m.title || m.value || m.code,
+    tip: m.tip || m.description,
+    disabled: Boolean(m.disabled || m.available === false),
+    insufficientText: m.insufficientText || m.unavailableReason || m.reason
+  })).filter((m) => m.value)
 }
 
-const loadDefaultAddress = async () => {
+async function load() {
+  const cart = await cartApi.list()
+  const all = listOf<any>(cart.data)
+  items.value = ids.value.length ? all.filter((i) => ids.value.includes(Number(i.cartId))) : all.filter((i) => i.selected)
+  try { address.value = (await addressApi.default()).data } catch {}
   try {
-    const res = await request.get('/address/default')
-    address.value = res.data
-  } catch (e) {
-    address.value = null
+    methods.value = normalizeMethods((await paymentApi.methods({ scene: 'order' })).data || [])
+  } catch {
+    methods.value = normalizeMethods([
+      { value: 'balance', label: '余额支付' },
+      { value: 'wineBean', label: '酒豆支付' },
+      { value: 'wechat', label: '微信支付' }
+    ])
+  }
+  if (!methods.value.find((m) => m.value === payMethod.value && !m.disabled)) {
+    payMethod.value = methods.value.find((m) => !m.disabled)?.value || ''
   }
 }
 
-const selectAddress = () => {
+function selectAddress() {
   uni.navigateTo({ url: '/pages/address/list/index?select=1' })
 }
 
-const handleSubmit = async () => {
+async function submit() {
+  if (submitting.value) return
+  if (!items.value.length) {
+    uni.showToast({ title: '请选择要结算的商品', icon: 'none' })
+    return
+  }
   if (!address.value) {
     uni.showToast({ title: '请选择收货地址', icon: 'none' })
     return
   }
-  const items = cartItems.value.map(item => ({ productId: item.productId, quantity: item.quantity }))
-  const res = await request.post('/order', { addressId: address.value.id, items })
-  uni.redirectTo({ url: `/pages/order/detail/index?id=${res.data.id}` })
+  if (!payMethod.value || !selectedMethod.value) {
+    uni.showToast({ title: '请选择单一支付方式', icon: 'none' })
+    return
+  }
+  if (selectedMethod.value.disabled) {
+    uni.showToast({ title: selectedMethod.value.insufficientText || '当前支付方式不可用', icon: 'none' })
+    return
+  }
+  submitting.value = true
+  try {
+    const res = await orderApi.create({
+      addressId: address.value.id,
+      payMethod: payMethod.value,
+      items: items.value.map((i) => ({ cartId: i.cartId, productId: i.productId, quantity: i.quantity }))
+    })
+    uni.redirectTo({ url: '/pages/order/detail/index?id=' + (res.data.id || res.data.orderId) })
+  } finally {
+    submitting.value = false
+  }
 }
 
-onLoad((options: any) => {
-  if (options.ids) {
-    selectedIds.value = options.ids.split(',').map(Number)
-  }
-  uni.$on('addressSelected', (addr: any) => {
-    address.value = addr
-  })
+onLoad((o: any) => {
+  if (o.ids) ids.value = String(o.ids).split(',').map(Number)
+  uni.$on('addressSelected', (a: any) => { address.value = a })
 })
-
-onShow(() => {
-  loadCartItems()
-  loadDefaultAddress()
-})
+onShow(load)
 </script>
 
-<style scoped>
-.checkout-page { background: #f5f5f5; min-height: 100vh; padding-bottom: 120rpx; }
-.address-card { background: #fff; margin: 20rpx; padding: 30rpx; border-radius: 12rpx; display: flex; align-items: center; }
-.receiver { font-size: 30rpx; font-weight: bold; }
-.address { font-size: 26rpx; color: #666; margin-top: 10rpx; }
-.no-address { color: #999; }
-.goods-card { background: #fff; margin: 20rpx; padding: 20rpx; border-radius: 12rpx; }
-.goods-item { display: flex; padding: 20rpx 0; border-bottom: 1rpx solid #f5f5f5; }
-.goods-img { width: 160rpx; height: 160rpx; border-radius: 12rpx; background: linear-gradient(135deg, #f7dfb4, #9a5c27); display: flex; align-items: center; justify-content: center; }
-.mini-bottle { width: 34rpx; height: 82rpx; border-radius: 16rpx 16rpx 8rpx 8rpx; background: #4d2a13; }
-.mini-bottle::before { content: ''; display: block; width: 16rpx; height: 24rpx; border-radius: 8rpx 8rpx 0 0; background: #4d2a13; margin: -20rpx auto 0; }
-.goods-info { flex: 1; margin-left: 20rpx; }
-.goods-name { font-size: 28rpx; }
-.goods-bottom { display: flex; justify-content: space-between; margin-top: 60rpx; }
-.goods-price { color: #e93b3d; }
-.goods-quantity { color: #999; }
-.summary-card { background: #fff; margin: 20rpx; padding: 20rpx; border-radius: 12rpx; }
-.summary-item { display: flex; justify-content: space-between; padding: 15rpx 0; font-size: 28rpx; }
-.summary-item.total { border-top: 1rpx solid #f5f5f5; margin-top: 10rpx; padding-top: 20rpx; }
-.price { color: #e93b3d; font-weight: bold; }
-.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 20rpx; display: flex; justify-content: space-between; align-items: center; }
-.total-info { font-size: 28rpx; }
-.submit-btn { background: linear-gradient(to right, #ff6034, #e93b3d); color: #fff; font-size: 30rpx; padding: 20rpx 60rpx; border-radius: 40rpx; border: none; }
+<style scoped lang="scss">
+.page{min-height:100vh;background:#f6f1e8;color:#24170c;padding-bottom:36rpx}
+.card{background:#fff;margin:20rpx;padding:28rpx;border-radius:16rpx;box-shadow:0 8rpx 24rpx rgba(58,32,12,.06)}
+.address{display:flex;align-items:center;justify-content:space-between;gap:20rpx}
+.title{display:block;font-size:34rpx;font-weight:900}
+.item-title{line-height:1.35}
+.muted{display:block;color:#8d8175;font-size:24rpx;margin-top:12rpx;line-height:1.5;white-space:pre-line}
+.price{color:#b97700;font-weight:900}
+.line{height:1rpx;background:#eee7db;margin:20rpx 0}
+.total-row{display:flex;align-items:center;justify-content:space-between}
+.total{font-size:42rpx}
+.submit{margin:30rpx 20rpx;height:88rpx;line-height:88rpx;border:0;border-radius:999rpx}
+.primary{background:#b97700;color:#fff}
+button:after{border:0}
 </style>

@@ -1,15 +1,16 @@
 <template>
   <div class="login-container">
-    <el-card class="login-card">
-      <h2>酒水商城管理后台</h2>
-      <el-form :model="form" label-width="0">
-        <el-form-item>
-          <el-input v-model="form.username" placeholder="用户名" prefix-icon="User" />
+    <el-card class="login-card" shadow="always">
+      <h1>酒水商城管理后台</h1>
+      <p>管理员登录</p>
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="0" @keyup.enter="handleLogin">
+        <el-form-item prop="username">
+          <el-input v-model.trim="form.username" placeholder="用户名" prefix-icon="User" />
         </el-form-item>
-        <el-form-item>
-          <el-input v-model="form.password" type="password" placeholder="密码" prefix-icon="Lock" @keyup.enter="handleLogin" />
+        <el-form-item prop="passwordHash">
+          <el-input v-model="form.passwordHash" type="password" placeholder="密码" prefix-icon="Lock" show-password />
         </el-form-item>
-        <el-button type="primary" style="width: 100%" :loading="loading" @click="handleLogin">登录</el-button>
+        <el-button type="primary" class="login-button" :loading="loading" @click="handleLogin">登录</el-button>
       </el-form>
     </el-card>
   </div>
@@ -17,34 +18,40 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 import request from '@/utils/request'
+import { useAdminStore } from '@/stores/admin'
 
 const router = useRouter()
+const adminStore = useAdminStore()
+const formRef = ref<FormInstance>()
 const loading = ref(false)
-const form = reactive({ username: 'admin', password: 'admin123' })
+const form = reactive({ username: 'admin', passwordHash: 'admin123' })
+const rules: FormRules = {
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  passwordHash: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+}
 
 const handleLogin = async () => {
+  await formRef.value?.validate()
   loading.value = true
   try {
-    const res = await request.post('/api/v1/admin/auth/login', {
-      username: form.username,
-      passwordHash: form.password
-    })
-    localStorage.setItem('token', res.data.token)
-    localStorage.setItem('adminUser', JSON.stringify(res.data.adminUser))
+    const res = await request.post('/api/v1/admin/auth/login', form)
+    adminStore.setSession(res.data.token, res.data.adminUser)
     ElMessage.success('登录成功')
     router.push('/dashboard')
-  } catch (e: any) {
-    ElMessage.error('用户名或密码错误')
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 </script>
 
 <style scoped>
-.login-container { height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-.login-card { width: 400px; padding: 20px; }
-h2 { text-align: center; margin-bottom: 30px; color: #303133; }
+.login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #eef2f7; }
+.login-card { width: 400px; padding: 14px; border-radius: 8px; }
+h1 { margin: 0; text-align: center; font-size: 24px; color: #1f2937; }
+p { margin: 10px 0 28px; text-align: center; color: #6b7280; }
+.login-button { width: 100%; }
 </style>

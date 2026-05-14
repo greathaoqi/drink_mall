@@ -28,7 +28,7 @@ public class AftersaleController {
         ));
     }
 
-    @GetMapping("/list")
+    @GetMapping({"", "/list"})
     @SaCheckLogin
     public Result<Page<Aftersale>> list(
             @RequestParam(defaultValue = "1") Integer page,

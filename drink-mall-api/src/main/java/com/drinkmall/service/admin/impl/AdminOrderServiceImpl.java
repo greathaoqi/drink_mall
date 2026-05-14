@@ -12,6 +12,7 @@ import com.drinkmall.entity.OperationLog;
 import com.drinkmall.entity.Order;
 import com.drinkmall.entity.OrderItem;
 import com.drinkmall.entity.Product;
+import com.drinkmall.enums.AftersaleStatus;
 import com.drinkmall.enums.OrderStatus;
 import com.drinkmall.enums.PaymentMethod;
 import com.drinkmall.enums.ProductZoneType;
@@ -160,7 +161,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     public void approveAftersale(Long aftersaleId, String remark) {
         Aftersale aftersale = aftersaleMapper.selectById(aftersaleId);
         if (aftersale == null) throw new BusinessException(404, "售后申请不存在");
-        aftersale.setStatus("approved");
+        aftersale.setStatus(AftersaleStatus.APPROVED.getCode());
         aftersale.setAdminRemark(remark);
         aftersale.setProcessedAt(LocalDateTime.now());
         aftersaleMapper.updateById(aftersale);
@@ -171,6 +172,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
             restoreStock(aftersale.getOrderId());
             rewardService.rollbackOrderRewards(aftersale.getOrderId(), "aftersale_approved");
         }
+        logAftersaleOperation("approve", aftersaleId, remark);
     }
 
     @Override
@@ -178,10 +180,46 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     public void rejectAftersale(Long aftersaleId, String reason) {
         Aftersale aftersale = aftersaleMapper.selectById(aftersaleId);
         if (aftersale == null) throw new BusinessException(404, "售后申请不存在");
-        aftersale.setStatus("rejected");
+        aftersale.setStatus(AftersaleStatus.REJECTED.getCode());
         aftersale.setAdminRemark(reason);
         aftersale.setProcessedAt(LocalDateTime.now());
         aftersaleMapper.updateById(aftersale);
+        logAftersaleOperation("reject", aftersaleId, reason);
+    }
+
+    @Override
+    @Transactional
+    public void closeAftersale(Long aftersaleId, String reason) {
+        Aftersale aftersale = requireAftersale(aftersaleId);
+        aftersale.setStatus(AftersaleStatus.CLOSED.getCode());
+        aftersale.setAdminRemark(reason);
+        aftersale.setProcessedAt(LocalDateTime.now());
+        aftersaleMapper.updateById(aftersale);
+        logAftersaleOperation("close", aftersaleId, reason);
+    }
+
+    @Override
+    @Transactional
+    public void completeAftersale(Long aftersaleId, String remark) {
+        Aftersale aftersale = requireAftersale(aftersaleId);
+        aftersale.setStatus(AftersaleStatus.COMPLETED.getCode());
+        aftersale.setAdminRemark(remark);
+        aftersale.setProcessedAt(LocalDateTime.now());
+        aftersaleMapper.updateById(aftersale);
+        logAftersaleOperation("complete", aftersaleId, remark);
+    }
+
+    @Override
+    @Transactional
+    public void recordOfflineAftersaleResult(Long aftersaleId, String result) {
+        Aftersale aftersale = requireAftersale(aftersaleId);
+        aftersale.setStatus(AftersaleStatus.OFFLINE_PROCESSED.getCode());
+        aftersale.setOfflineProcessResult(result);
+        aftersale.setOfflineProcessedAt(LocalDateTime.now());
+        aftersale.setOfflineProcessorAdminId(currentAdminId());
+        aftersale.setProcessedAt(LocalDateTime.now());
+        aftersaleMapper.updateById(aftersale);
+        logAftersaleOperation("offline_process", aftersaleId, result);
     }
 
     @Override
@@ -258,12 +296,29 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         return product == null ? "" : product.getZoneType();
     }
 
+    private Aftersale requireAftersale(Long aftersaleId) {
+        Aftersale aftersale = aftersaleMapper.selectById(aftersaleId);
+        if (aftersale == null) throw new BusinessException(404, "aftersale not found");
+        return aftersale;
+    }
+
     private void logOperation(String action, Long orderId, String detail) {
         OperationLog log = new OperationLog();
         log.setAdminUserId(currentAdminId());
         log.setModule("order");
         log.setAction(action);
         log.setTargetId(String.valueOf(orderId));
+        log.setDetail(detail);
+        log.setCreatedAt(LocalDateTime.now());
+        operationLogMapper.insert(log);
+    }
+
+    private void logAftersaleOperation(String action, Long aftersaleId, String detail) {
+        OperationLog log = new OperationLog();
+        log.setAdminUserId(currentAdminId());
+        log.setModule("aftersale");
+        log.setAction(action);
+        log.setTargetId(String.valueOf(aftersaleId));
         log.setDetail(detail);
         log.setCreatedAt(LocalDateTime.now());
         operationLogMapper.insert(log);

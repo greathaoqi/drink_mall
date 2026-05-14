@@ -46,7 +46,7 @@ class AssetRewardWithdrawalServiceTest {
 
     @BeforeEach
     void setUp() {
-        assetService = new AssetServiceImpl(userMapper, assetAccountMapper, assetLogMapper, operationLogMapper);
+        assetService = new AssetServiceImpl(userMapper, assetAccountMapper, assetLogMapper, operationLogMapper, sysConfigMapper);
         rewardService = new RewardServiceImpl(
                 rewardRecordMapper, userMapper, sysConfigMapper, orderMapper, orderItemMapper, productMapper, assetService
         );
@@ -109,6 +109,39 @@ class AssetRewardWithdrawalServiceTest {
     }
 
     @Test
+    void dfExchangeToWineBeanDeductsDfAddsWineBeanAndWritesBothLogs() {
+        User user = user(13L, UserLevel.NORMAL);
+        user.setDfBalance(new BigDecimal("80.00"));
+        user.setWineBeanBalance(new BigDecimal("5.00"));
+        when(userMapper.selectById(13L)).thenReturn(user);
+
+        assetService.exchangeDfToWineBean(13L, new BigDecimal("30.00"));
+
+        assertThat(user.getDfBalance()).isEqualByComparingTo("50.00");
+        assertThat(user.getWineBeanBalance()).isEqualByComparingTo("35.00");
+        ArgumentCaptor<AssetLog> log = ArgumentCaptor.forClass(AssetLog.class);
+        verify(assetLogMapper, times(2)).insert(log.capture());
+        assertThat(log.getAllValues()).extracting(AssetLog::getAssetType)
+                .containsExactly("df", "wine_bean");
+    }
+
+    @Test
+    void dfTransferDeductsSenderAddsReceiverAndWritesBothLogs() {
+        User sender = user(14L, UserLevel.NORMAL);
+        sender.setDfBalance(new BigDecimal("100.00"));
+        User receiver = user(15L, UserLevel.NORMAL);
+        receiver.setDfBalance(new BigDecimal("2.00"));
+        when(userMapper.selectById(15L)).thenReturn(receiver);
+        when(userMapper.selectById(14L)).thenReturn(sender);
+
+        assetService.transferDf(14L, 15L, new BigDecimal("25.00"));
+
+        assertThat(sender.getDfBalance()).isEqualByComparingTo("75.00");
+        assertThat(receiver.getDfBalance()).isEqualByComparingTo("27.00");
+        verify(assetLogMapper, times(2)).insert(any(AssetLog.class));
+    }
+
+    @Test
     void retailRewardCreatesOnlyDirectFrozenRecordAndIsIdempotent() {
         User buyer = user(20L, UserLevel.NORMAL);
         buyer.setInviterId(21L);
@@ -131,6 +164,27 @@ class AssetRewardWithdrawalServiceTest {
         when(rewardRecordMapper.selectCount(any())).thenReturn(1L);
         rewardService.settleOrderRewards(order);
         verify(rewardRecordMapper, times(1)).insert(any(RewardRecord.class));
+    }
+
+    @Test
+    void retailRewardUsesLatestConfiguredRatioForNewOrders() {
+        User buyer = user(22L, UserLevel.NORMAL);
+        buyer.setInviterId(23L);
+        when(userMapper.selectById(22L)).thenReturn(buyer);
+        when(rewardRecordMapper.selectCount(any())).thenReturn(0L);
+        when(sysConfigMapper.selectOne(any()))
+                .thenReturn(config("0.10"))
+                .thenReturn(config("7"))
+                .thenReturn(config("0.12"))
+                .thenReturn(config("7"));
+
+        rewardService.settleOrderRewards(order(220L, 22L, ProductZoneType.RETAIL, "100.00"));
+        rewardService.settleOrderRewards(order(221L, 22L, ProductZoneType.RETAIL, "100.00"));
+
+        ArgumentCaptor<RewardRecord> rewards = ArgumentCaptor.forClass(RewardRecord.class);
+        verify(rewardRecordMapper, times(2)).insert(rewards.capture());
+        assertThat(rewards.getAllValues()).extracting(RewardRecord::getAmount)
+                .containsExactly(new BigDecimal("10.00"), new BigDecimal("12.00"));
     }
 
     @Test

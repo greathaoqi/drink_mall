@@ -1,8 +1,11 @@
 package com.drinkmall.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.Result;
+import com.drinkmall.dto.PaymentMethodResponse;
+import com.drinkmall.dto.ProductResponse;
 import com.drinkmall.entity.Banner;
 import com.drinkmall.entity.Category;
 import com.drinkmall.entity.Product;
@@ -44,7 +47,7 @@ public class PublicController {
     }
 
     @GetMapping("/products")
-    public Result<Page<Product>> getProducts(
+    public Result<IPage<ProductResponse>> getProducts(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String zoneType,
             @RequestParam(required = false) String keyword,
@@ -76,16 +79,26 @@ public class PublicController {
             wrapper.orderByDesc(Product::getSortOrder);
         }
 
-        Page<Product> result = productMapper.selectPage(pageParam, wrapper);
+        IPage<ProductResponse> result = productMapper.selectPage(pageParam, wrapper)
+                .convert(product -> ProductResponse.fromProduct(product, PaymentMethodResponse.fromCodes(product.getAllowedPaymentMethods())));
         return Result.success(result);
     }
 
     @GetMapping("/products/{id}")
-    public Result<Product> getProductDetail(@PathVariable Long id) {
+    public Result<ProductResponse> getProductDetail(@PathVariable Long id) {
         Product product = productMapper.selectById(id);
         if (product == null || product.getStatus() != 1) {
             return Result.success(null);
         }
-        return Result.success(product);
+        return Result.success(ProductResponse.fromProduct(product, PaymentMethodResponse.fromCodes(product.getAllowedPaymentMethods())));
+    }
+
+    @GetMapping("/products/{id}/pay-methods")
+    public Result<List<PaymentMethodResponse>> getProductPayMethods(@PathVariable Long id) {
+        Product product = productMapper.selectById(id);
+        if (product == null || product.getStatus() != 1) {
+            return Result.success(List.of());
+        }
+        return Result.success(PaymentMethodResponse.fromCodes(product.getAllowedPaymentMethods()));
     }
 }

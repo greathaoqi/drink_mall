@@ -1,0 +1,97 @@
+services:
+  mysql-test:
+    image: docker.1ms.run/library/mysql:8.0
+    container_name: drink-mall-mysql-test
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: drink_mall_test
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    ports:
+      - "0.0.0.0:3307:3306"
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - drink-mall-test-network
+
+  redis-test:
+    image: docker.1ms.run/library/redis:7.2-alpine
+    container_name: drink-mall-redis-test
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:6380:6379"
+    volumes:
+      - redis_test_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - drink-mall-test-network
+
+  backend-test:
+    build:
+      context: ./drink-mall-api
+      dockerfile: Dockerfile
+    container_name: drink-mall-backend-test
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+      SERVER_ADDRESS: 0.0.0.0
+      DB_HOST: mysql-test
+      DB_PORT: 3306
+      DB_NAME: drink_mall_test
+      DB_USERNAME: root
+      DB_PASSWORD: root123456
+      REDIS_HOST: redis-test
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      REDIS_DATABASE: 1
+      SA_TOKEN_JWT_SECRET: drink-mall-test-jwt-secret-change-me
+      WX_MINIAPP_APPID: test-miniapp-appid
+      WX_MINIAPP_SECRET: test-miniapp-secret
+    ports:
+      - "0.0.0.0:28080:8080"
+    depends_on:
+      mysql-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    networks:
+      drink-mall-test-network:
+        aliases:
+          - backend
+
+  admin-test:
+    build:
+      context: ./drink-mall-admin
+      dockerfile: Dockerfile
+    container_name: drink-mall-admin-test
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:23001:80"
+    depends_on:
+      - backend-test
+    networks:
+      - drink-mall-test-network
+
+volumes:
+  mysql_test_data:
+    name: drink-mall_mysql_test_data
+  redis_test_data:
+    name: drink-mall_redis_test_data
+
+networks:
+  drink-mall-test-network:
+    driver: bridge

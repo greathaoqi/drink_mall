@@ -68,7 +68,7 @@ public class AdminFinanceController {
 
     @GetMapping("/asset-logs")
     public Result<Page<AssetLog>> getAssetLogs(
-            @RequestParam Long userId,
+            @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String assetType,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "20") Integer size

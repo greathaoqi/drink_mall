@@ -92,6 +92,24 @@ public class AdminOrderController {
         return Result.success(null);
     }
 
+    @PutMapping("/aftersale/{aftersaleId}/close")
+    public Result<Void> closeAftersale(@PathVariable Long aftersaleId, @RequestParam String reason) {
+        adminOrderService.closeAftersale(aftersaleId, reason);
+        return Result.success(null);
+    }
+
+    @PutMapping("/aftersale/{aftersaleId}/complete")
+    public Result<Void> completeAftersale(@PathVariable Long aftersaleId, @RequestParam(required = false) String remark) {
+        adminOrderService.completeAftersale(aftersaleId, remark);
+        return Result.success(null);
+    }
+
+    @PutMapping("/aftersale/{aftersaleId}/offline-result")
+    public Result<Void> recordOfflineAftersaleResult(@PathVariable Long aftersaleId, @RequestParam String result) {
+        adminOrderService.recordOfflineAftersaleResult(aftersaleId, result);
+        return Result.success(null);
+    }
+
     @GetMapping("/statistics")
     public Result<Map<String, Object>> getStatistics() {
         return Result.success(adminOrderService.getStatistics());

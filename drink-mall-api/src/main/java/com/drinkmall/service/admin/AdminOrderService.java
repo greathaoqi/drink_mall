@@ -18,5 +18,8 @@ public interface AdminOrderService {
     Page<Aftersale> getAftersales(String status, Integer page, Integer size);
     void approveAftersale(Long aftersaleId, String remark);
     void rejectAftersale(Long aftersaleId, String reason);
+    void closeAftersale(Long aftersaleId, String reason);
+    void completeAftersale(Long aftersaleId, String remark);
+    void recordOfflineAftersaleResult(Long aftersaleId, String result);
     Map<String, Object> getStatistics();
 }

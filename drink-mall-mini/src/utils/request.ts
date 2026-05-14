@@ -1,96 +1,108 @@
-import { useUserStore } from '@/store/user'
+﻿import { useUserStore } from '@/store/user'
 
-interface RequestOptions {
+export interface RequestOptions {
   url: string
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   data?: any
   header?: Record<string, string>
   showLoading?: boolean
   showError?: boolean
-  requireAuth?: boolean  // 是否需要登录，默认true，public接口设为false
+  requireAuth?: boolean
+  loadingText?: string
 }
 
-interface ApiResponse<T = any> {
+export interface ApiResponse<T = any> {
   code: number
   message: string
   data: T
 }
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://hy.ajiu.lol/api/v1'
+let redirectingLogin = false
 
-async function request<T = any>(options: RequestOptions): Promise<ApiResponse<T>> {
-  const { url, method = 'GET', data, header = {}, showLoading = false, showError = true, requireAuth = true } = options
+function buildUrl(url: string, data: any, method: string) {
+  if (method !== 'GET' || !data) return BASE_URL + url
+  const query = Object.keys(data)
+    .filter((key) => data[key] !== undefined && data[key] !== null && data[key] !== '')
+    .map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(data[key]))
+    .join('&')
+  return BASE_URL + url + (query ? (url.includes('?') ? '&' : '?') + query : '')
+}
 
-  if (showLoading) {
-    uni.showLoading({ title: '加载中...' })
+function normalizeResponse<T>(raw: any): ApiResponse<T> {
+  if (raw && typeof raw.code === 'number') return raw
+  if (raw && typeof raw.success === 'boolean') return { code: raw.success ? 200 : 500, message: raw.message || '', data: raw.data }
+  return { code: 200, message: 'ok', data: raw as T }
+}
+
+function goLogin() {
+  if (redirectingLogin) return
+  redirectingLogin = true
+  uni.navigateTo({ url: '/pages/login/index', complete: () => setTimeout(() => { redirectingLogin = false }, 500) })
+}
+
+export async function request<T = any>(options: RequestOptions): Promise<ApiResponse<T>> {
+  const { url, method = 'GET', data, header = {}, showLoading = false, showError = true, requireAuth = true, loadingText = '加载中' } = options
+  const userStore = useUserStore()
+
+  if (requireAuth && !userStore.token) {
+    goLogin()
+    throw new Error('请先登录')
   }
+  if (showLoading) uni.showLoading({ title: loadingText, mask: true })
 
   try {
     const response = await new Promise<ApiResponse<T>>((resolve, reject) => {
       uni.request({
-        url: BASE_URL + url,
+        url: buildUrl(url, data, method),
         method,
-        data,
+        data: method === 'GET' ? undefined : data,
         header: {
           'Content-Type': 'application/json',
-          ...(useUserStore().token ? { Authorization: useUserStore().token } : {}),
+          ...(userStore.token ? { Authorization: userStore.token, token: userStore.token } : {}),
           ...header
         },
-        withCredentials: true,
         success: (res) => {
-          if (res.statusCode === 200) {
-            resolve(res.data as ApiResponse<T>)
-          } else if (res.statusCode === 401) {
-            // 只对需要认证的接口清除用户状态并报错
-            if (requireAuth) {
-              const userStore = useUserStore()
-              userStore.clearUser()
-              reject(new Error('请先登录'))
-            } else {
-              // 公共接口401直接返回空数据
-              resolve({ code: 401, message: '未授权', data: null as T })
-            }
-          } else {
-            reject(new Error(`请求失败: ${res.statusCode}`))
+          if (res.statusCode === 401) {
+            userStore.clearUser()
+            if (requireAuth) goLogin()
+            reject(new Error('登录已过期，请重新登录'))
+            return
           }
+          if (res.statusCode < 200 || res.statusCode >= 300) {
+            reject(new Error('接口请求失败：' + res.statusCode))
+            return
+          }
+          const body = normalizeResponse<T>(res.data)
+          if (body.code === 401) {
+            userStore.clearUser()
+            if (requireAuth) goLogin()
+            reject(new Error(body.message || '登录已过期，请重新登录'))
+            return
+          }
+          if (body.code !== 200 && body.code !== 0) {
+            reject(new Error(body.message || '操作失败'))
+            return
+          }
+          resolve(body)
         },
-        fail: (err) => {
-          reject(new Error(err.errMsg || '网络请求失败'))
-        }
+        fail: (err) => reject(new Error(err.errMsg || '网络异常，请稍后重试'))
       })
     })
-
     return response
   } catch (error: any) {
-    if (showError) {
-      uni.showToast({
-        title: error.message || '网络错误',
-        icon: 'none'
-      })
-    }
+    if (showError) uni.showToast({ title: error.message || '请求失败', icon: 'none' })
     throw error
   } finally {
-    if (showLoading) {
-      uni.hideLoading()
-    }
+    if (showLoading) uni.hideLoading()
   }
 }
 
-const http = {
-  get<T = any>(url: string, data?: any, options?: Partial<RequestOptions>) {
-    return request<T>({ url, method: 'GET', data, ...options })
-  },
-  post<T = any>(url: string, data?: any, options?: Partial<RequestOptions>) {
-    return request<T>({ url, method: 'POST', data, ...options })
-  },
-  put<T = any>(url: string, data?: any, options?: Partial<RequestOptions>) {
-    return request<T>({ url, method: 'PUT', data, ...options })
-  },
-  delete<T = any>(url: string, data?: any, options?: Partial<RequestOptions>) {
-    return request<T>({ url, method: 'DELETE', data, ...options })
-  }
+export const http = {
+  get<T = any>(url: string, data?: any, options?: Partial<RequestOptions>) { return request<T>({ url, method: 'GET', data, ...options }) },
+  post<T = any>(url: string, data?: any, options?: Partial<RequestOptions>) { return request<T>({ url, method: 'POST', data, ...options }) },
+  put<T = any>(url: string, data?: any, options?: Partial<RequestOptions>) { return request<T>({ url, method: 'PUT', data, ...options }) },
+  delete<T = any>(url: string, data?: any, options?: Partial<RequestOptions>) { return request<T>({ url, method: 'DELETE', data, ...options }) }
 }
 
-export { http }
-export { request }
 export default http

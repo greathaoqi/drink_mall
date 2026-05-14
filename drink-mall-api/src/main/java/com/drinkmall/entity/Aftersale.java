@@ -19,6 +19,9 @@ public class Aftersale {
     private BigDecimal refundAmount;
     private String status;
     private String adminRemark;
+    private String offlineProcessResult;
+    private LocalDateTime offlineProcessedAt;
+    private Long offlineProcessorAdminId;
     private LocalDateTime createdAt;
     private LocalDateTime processedAt;
 }

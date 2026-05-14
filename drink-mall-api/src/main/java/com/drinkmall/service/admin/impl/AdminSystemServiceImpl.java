@@ -1,5 +1,6 @@
 package com.drinkmall.service.admin.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.crypto.SecureUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -42,6 +43,7 @@ public class AdminSystemServiceImpl implements AdminSystemService {
         adminUser.setPasswordHash(SecureUtil.md5(adminUser.getPasswordHash()));
         adminUser.setCreatedAt(LocalDateTime.now());
         adminUserMapper.insert(adminUser);
+        logOperation("admin_user", "create", adminUser.getId(), "username=" + adminUser.getUsername());
         return adminUser;
     }
 
@@ -56,12 +58,15 @@ public class AdminSystemServiceImpl implements AdminSystemService {
         }
         adminUser.setUpdatedAt(LocalDateTime.now());
         adminUserMapper.updateById(adminUser);
+        logOperation("admin_user", "update", adminUser.getId(), "username=" + adminUser.getUsername());
         return adminUser;
     }
 
     @Override
     public void deleteAdminUser(Long userId) {
+        AdminUser existing = adminUserMapper.selectById(userId);
         adminUserMapper.deleteById(userId);
+        logOperation("admin_user", "delete", userId, existing == null ? null : "username=" + existing.getUsername());
     }
 
     @Override
@@ -71,6 +76,7 @@ public class AdminSystemServiceImpl implements AdminSystemService {
         adminUser.setStatus(status);
         adminUser.setUpdatedAt(LocalDateTime.now());
         adminUserMapper.updateById(adminUser);
+        logOperation("admin_user", "status", userId, "status=" + status);
     }
 
     @Override
@@ -101,10 +107,13 @@ public class AdminSystemServiceImpl implements AdminSystemService {
             config.setConfigValue(configValue);
             config.setUpdatedAt(LocalDateTime.now());
             sysConfigMapper.insert(config);
+            logOperation("config", "create", config.getId(), configKey + "=" + configValue);
         } else {
+            String before = config.getConfigValue();
             config.setConfigValue(configValue);
             config.setUpdatedAt(LocalDateTime.now());
             sysConfigMapper.updateById(config);
+            logOperation("config", "update", config.getId(), configKey + ": " + before + " -> " + configValue);
         }
     }
 
@@ -117,5 +126,24 @@ public class AdminSystemServiceImpl implements AdminSystemService {
         if (startDate != null) wrapper.ge(OperationLog::getCreatedAt, LocalDateTime.parse(startDate + "T00:00:00"));
         if (endDate != null) wrapper.le(OperationLog::getCreatedAt, LocalDateTime.parse(endDate + "T23:59:59"));
         return operationLogMapper.selectPage(pageParam, wrapper);
+    }
+
+    private void logOperation(String module, String action, Long targetId, String detail) {
+        OperationLog log = new OperationLog();
+        log.setAdminUserId(currentAdminId());
+        log.setModule(module);
+        log.setAction(action);
+        log.setTargetId(targetId == null ? null : String.valueOf(targetId));
+        log.setDetail(detail);
+        log.setCreatedAt(LocalDateTime.now());
+        operationLogMapper.insert(log);
+    }
+
+    private Long currentAdminId() {
+        try {
+            return StpUtil.getLoginIdAsLong();
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 }

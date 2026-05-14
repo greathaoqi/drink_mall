@@ -91,7 +91,13 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             return null;
         }
-        return UserInfoResponse.fromEntity(user);
+        UserInfoResponse response = UserInfoResponse.fromEntity(user);
+        if (user.getInviterId() != null) {
+            User inviter = userMapper.selectById(user.getInviterId());
+            response.setInviterName(inviter == null ? null : inviter.getNickname());
+        }
+        response.setShowOption(optionVisible());
+        return response;
     }
 
     @Override
@@ -305,5 +311,10 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(500, "绯荤粺閰嶇疆缂哄け: real_name.enabled");
         }
         return Boolean.parseBoolean(config.getConfigValue());
+    }
+
+    private boolean optionVisible() {
+        SysConfig config = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, "asset.option.visible_in_mini"));
+        return config != null && Boolean.parseBoolean(config.getConfigValue());
     }
 }

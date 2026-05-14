@@ -2,6 +2,7 @@ package com.drinkmall.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -14,6 +15,11 @@ public class Video {
     private String videoUrl;
     private Integer duration;
     private Integer views;
+    private String watchLevel;
+    private Boolean paid;
+    private BigDecimal price;
+    private String paymentMethods;
+    private Integer likes;
     private Integer status;
     private Integer sortOrder;
     @TableField(fill = FieldFill.INSERT)

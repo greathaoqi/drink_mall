@@ -25,6 +25,12 @@ public class AuthController {
         return Result.success(response);
     }
 
+    @PostMapping("/wechat-login")
+    public Result<LoginResponse> wechatLogin(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return Result.success(response);
+    }
+
     @PostMapping("/demo-login")
     public Result<LoginResponse> demoLogin() {
         return Result.success(authService.demoLogin());

@@ -1,55 +1,66 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+﻿import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
 
 export interface UserInfo {
-  userId: number
+  userId: number | string
+  nickname?: string
+  avatarUrl?: string
+  mobile?: string
+  realNameStatus?: string
+  levelName?: string
+  inviteCode?: string
+  inviterName?: string
+  balance?: number | string
+  frozenBalance?: number | string
+  df?: number | string
+  wineBean?: number | string
+  points?: number | string
+  optionValue?: number | string
+  showOption?: boolean
   token?: string
-  nickname: string
-  avatarUrl: string
-  ageVerified: boolean
-  balance: number
-  points: number
 }
 
-export const useUserStore = defineStore('user', () => {
-  const userInfo = ref<UserInfo | null>(null)
-  const token = ref<string>(uni.getStorageSync('token') || '')
-  const isLoggedIn = computed(() => userInfo.value !== null)
-  const ageVerified = computed(() => userInfo.value?.ageVerified ?? false)
+const TOKEN_KEY = 'drink_mall_token'
+const USER_KEY = 'drink_mall_user'
+const REFERRAL_KEY = 'drink_mall_referral'
 
-  function setUser(user: UserInfo | null) {
-    userInfo.value = user
-    if (user?.token) {
-      token.value = user.token
-      uni.setStorageSync('token', user.token)
-    }
+export const useUserStore = defineStore('user', () => {
+  const token = ref<string>(uni.getStorageSync(TOKEN_KEY) || uni.getStorageSync('token') || '')
+  const userInfo = ref<UserInfo | null>(uni.getStorageSync(USER_KEY) || null)
+  const referralCode = ref<string>(uni.getStorageSync(REFERRAL_KEY) || '')
+  const isLoggedIn = computed(() => !!token.value)
+  const realNameApproved = computed(() => userInfo.value?.realNameStatus === 'APPROVED')
+
+  function setReferral(code?: string) {
+    referralCode.value = code || ''
+    if (code) uni.setStorageSync(REFERRAL_KEY, code)
   }
 
   function setToken(value: string) {
-    token.value = value
-    uni.setStorageSync('token', value)
-  }
-
-  function setAgeVerified(verified: boolean) {
-    if (userInfo.value) {
-      userInfo.value.ageVerified = verified
+    token.value = value || ''
+    if (value) {
+      uni.setStorageSync(TOKEN_KEY, value)
+      uni.setStorageSync('token', value)
     }
   }
 
-  function clearUser() {
-    userInfo.value = null
-    token.value = ''
-    uni.removeStorageSync('token')
+  function setUser(user: UserInfo | null) {
+    userInfo.value = user
+    if (user?.token) setToken(user.token)
+    if (user) uni.setStorageSync(USER_KEY, user)
   }
 
-  return {
-    userInfo,
-    token,
-    isLoggedIn,
-    ageVerified,
-    setUser,
-    setToken,
-    setAgeVerified,
-    clearUser
+  function patchUser(partial: Partial<UserInfo>) {
+    setUser({ ...(userInfo.value || {}), ...partial } as UserInfo)
   }
+
+  function clearUser() {
+    token.value = ''
+    userInfo.value = null
+    uni.removeStorageSync(TOKEN_KEY)
+    uni.removeStorageSync('token')
+    uni.removeStorageSync(USER_KEY)
+  }
+
+  return { token, userInfo, referralCode, isLoggedIn, realNameApproved, setReferral, setToken, setUser, patchUser, clearUser }
 })

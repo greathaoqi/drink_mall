@@ -1,133 +1,88 @@
 <template>
-  <view class="order-detail">
-    <view class="status-card">
-      <view class="status-text">{{ statusText(order.status) }}</view>
-      <view class="status-desc">{{ statusDesc(order.status) }}</view>
+  <view class="page">
+    <view class="card">
+      <text class="title">订单 {{ order.orderNo || order.id }}</text>
+      <text class="muted">状态：{{ order.statusText || order.status }}</text>
+      <text class="price">¥{{ order.payAmount }}</text>
+      <view class="line"></view>
+      <text class="muted">物流单号：{{ order.trackingNo || '暂无' }}</text>
     </view>
 
-    <view class="address-card">
-      <view class="receiver">{{ order.address?.name }} {{ order.address?.phone }}</view>
-      <view class="address">{{ order.address?.province }}{{ order.address?.city }}{{ order.address?.district }}{{ order.address?.detail }}</view>
-    </view>
+    <PayMethodSelector v-if="order.status === 'pending'" v-model="payMethod" :methods="methods" title="待付款支付方式" />
 
-    <view class="goods-card">
-      <view v-for="item in order.items" :key="item.itemId" class="goods-item">
-        <view class="goods-img"><view class="mini-bottle"></view></view>
-        <view class="goods-info">
-          <text class="goods-name">{{ item.productName }}</text>
-          <view class="goods-bottom">
-            <text class="goods-price">¥{{ item.price }}</text>
-            <text class="goods-quantity">x{{ item.quantity }}</text>
-          </view>
-        </view>
-      </view>
-      <view class="goods-total">
-        <text>商品金额</text>
-        <text>¥{{ order.totalAmount }}</text>
-      </view>
-    </view>
-
-    <view class="info-card">
-      <view class="info-item">
-        <text class="label">订单编号</text>
-        <text class="value">{{ order.orderNo }}</text>
-      </view>
-      <view class="info-item">
-        <text class="label">创建时间</text>
-        <text class="value">{{ order.createdAt }}</text>
-      </view>
-      <view class="info-item" v-if="order.paymentTime">
-        <text class="label">支付时间</text>
-        <text class="value">{{ order.paymentTime }}</text>
-      </view>
-    </view>
-
-    <view class="bottom-bar">
-      <button v-if="order.status === 'pending'" class="btn cancel" @click="handleCancel">取消订单</button>
-      <button v-if="order.status === 'pending'" class="btn pay" @click="handlePay">立即支付</button>
-      <button v-if="order.status === 'shipped'" class="btn confirm" @click="handleConfirm">确认收货</button>
-      <button v-if="['paid', 'shipped'].includes(order.status)" class="btn aftersale" @click="goAftersale">申请售后</button>
+    <view class="card actions">
+      <button v-if="order.status === 'pending'" class="primary" @click="pay">付款</button>
+      <button v-if="order.status === 'pending'" @click="cancel">取消</button>
+      <button v-if="order.status === 'shipped'" class="primary" @click="confirm">确认收货</button>
+      <button v-if="['paid','shipped','completed'].includes(order.status)" @click="aftersale">申请售后</button>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import request from '@/utils/request'
+import PayMethodSelector from '@/components/PayMethodSelector/PayMethodSelector.vue'
+import { orderApi } from '@/services/order'
+import { paymentApi } from '@/services/payment'
 
+const id = ref('')
 const order = ref<any>({})
-const orderId = ref(0)
+const payMethod = ref('')
+const methods = ref<any[]>([])
+const selectedMethod = computed(() => methods.value.find((m) => m.value === payMethod.value))
 
-const statusText = (status: string) => {
-  const map: Record<string, string> = { pending: '待付款', paid: '待发货', shipped: '待收货', completed: '已完成', cancelled: '已取消' }
-  return map[status] || status
+function normalizeMethods(raw: any[]) {
+  return raw.map((m) => ({
+    value: m.value || m.code || m.payMethod || m.method,
+    label: m.label || m.name || m.title || m.value || m.code,
+    tip: m.tip || m.description,
+    disabled: Boolean(m.disabled || m.available === false),
+    insufficientText: m.insufficientText || m.unavailableReason || m.reason
+  })).filter((m) => m.value)
 }
 
-const statusDesc = (status: string) => {
-  const map: Record<string, string> = { pending: '请在30分钟内完成支付', paid: '商家正在准备发货', shipped: '商品正在配送中', completed: '感谢您的支持', cancelled: '订单已取消' }
-  return map[status] || ''
+async function load() {
+  order.value = (await orderApi.detail(id.value)).data || {}
+  if (order.value.status === 'pending') {
+    const raw = order.value.payMethods || order.value.availablePayMethods
+    if (Array.isArray(raw) && raw.length) {
+      methods.value = normalizeMethods(raw)
+    } else {
+      try { methods.value = normalizeMethods((await paymentApi.methods({ scene: 'order', orderId: id.value })).data || []) } catch { methods.value = [] }
+    }
+    payMethod.value = order.value.payMethod || methods.value.find((m) => !m.disabled)?.value || ''
+  }
 }
 
-const loadOrder = async () => {
-  const res = await request.get(`/order/${orderId.value}`)
-  order.value = res.data || {}
-}
-
-const handleCancel = async () => {
-  await request.post(`/order/${orderId.value}/cancel`)
-  uni.showToast({ title: '已取消', icon: 'success' })
-  loadOrder()
-}
-
-const handlePay = async () => {
-  await request.post(`/order/${orderId.value}/balance-pay`)
+async function pay() {
+  if (!payMethod.value || !selectedMethod.value) {
+    uni.showToast({ title: '请选择单一支付方式', icon: 'none' })
+    return
+  }
+  if (selectedMethod.value.disabled) {
+    uni.showToast({ title: selectedMethod.value.insufficientText || '当前支付方式不可用', icon: 'none' })
+    return
+  }
+  await paymentApi.pay(id.value, payMethod.value)
   uni.showToast({ title: '支付成功', icon: 'success' })
-  loadOrder()
+  load()
 }
-
-const handleConfirm = async () => {
-  await request.post(`/order/${orderId.value}/confirm`)
-  uni.showToast({ title: '已确认收货', icon: 'success' })
-  loadOrder()
-}
-
-const goAftersale = () => {
-  uni.navigateTo({ url: `/pages/aftersale/index?orderId=${orderId.value}` })
-}
-
-onLoad((options: any) => {
-  orderId.value = options.id
-  loadOrder()
-})
+async function cancel() { await orderApi.cancel(id.value); load() }
+async function confirm() { await orderApi.confirm(id.value); load() }
+function aftersale() { uni.navigateTo({ url: '/pages/aftersale/index?orderId=' + id.value }) }
+onLoad((o: any) => { id.value = o.id; load() })
 </script>
 
-<style scoped>
-.order-detail { background: #f5f5f5; min-height: 100vh; padding-bottom: 120rpx; }
-.status-card { background: linear-gradient(135deg, #e93b3d, #ff6b6b); color: #fff; padding: 40rpx; }
-.status-text { font-size: 36rpx; font-weight: bold; }
-.status-desc { font-size: 28rpx; margin-top: 10rpx; opacity: 0.9; }
-.address-card { background: #fff; margin: 20rpx; padding: 30rpx; border-radius: 12rpx; }
-.receiver { font-size: 30rpx; font-weight: bold; }
-.address { font-size: 26rpx; color: #666; margin-top: 10rpx; }
-.goods-card { background: #fff; margin: 20rpx; padding: 20rpx; border-radius: 12rpx; }
-.goods-item { display: flex; padding: 20rpx 0; border-bottom: 1rpx solid #f5f5f5; }
-.goods-img { width: 160rpx; height: 160rpx; border-radius: 12rpx; background: linear-gradient(135deg, #f7dfb4, #9a5c27); display: flex; align-items: center; justify-content: center; }
-.mini-bottle { width: 34rpx; height: 82rpx; border-radius: 16rpx 16rpx 8rpx 8rpx; background: #4d2a13; }
-.mini-bottle::before { content: ''; display: block; width: 16rpx; height: 24rpx; border-radius: 8rpx 8rpx 0 0; background: #4d2a13; margin: -20rpx auto 0; }
-.goods-info { flex: 1; margin-left: 20rpx; }
-.goods-name { font-size: 28rpx; }
-.goods-bottom { display: flex; justify-content: space-between; margin-top: 60rpx; }
-.goods-price { color: #e93b3d; }
-.goods-quantity { color: #999; }
-.goods-total { display: flex; justify-content: space-between; padding: 20rpx 0; font-size: 28rpx; }
-.info-card { background: #fff; margin: 20rpx; padding: 20rpx; border-radius: 12rpx; }
-.info-item { display: flex; justify-content: space-between; padding: 15rpx 0; font-size: 26rpx; }
-.label { color: #999; }
-.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 20rpx; display: flex; gap: 20rpx; justify-content: flex-end; }
-.btn { font-size: 28rpx; padding: 16rpx 40rpx; border-radius: 40rpx; }
-.btn.cancel { background: #fff; border: 1rpx solid #ddd; color: #666; }
-.btn.pay { background: #e93b3d; color: #fff; border: none; }
-.btn.confirm { background: #52c41a; color: #fff; border: none; }
-.btn.aftersale { background: #fff; border: 1rpx solid #e93b3d; color: #e93b3d; }
+<style scoped lang="scss">
+.page{min-height:100vh;background:#f6f1e8;color:#24170c}
+.card{background:#fff;margin:20rpx;padding:28rpx;border-radius:16rpx;box-shadow:0 8rpx 24rpx rgba(58,32,12,.06)}
+.title{display:block;font-size:34rpx;font-weight:900}
+.muted{display:block;color:#8d8175;font-size:24rpx;margin-top:12rpx}
+.price{display:block;color:#b97700;font-weight:900;margin-top:12rpx;font-size:40rpx}
+.line{height:1rpx;background:#eee7db;margin:20rpx 0}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:18rpx}
+button{height:78rpx;line-height:78rpx;background:#fff4df;color:#8a5b0e;border:0;border-radius:999rpx;font-size:26rpx}
+.primary{background:#b97700;color:#fff}
+button:after{border:0}
 </style>

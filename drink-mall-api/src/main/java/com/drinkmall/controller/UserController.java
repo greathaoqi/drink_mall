@@ -5,6 +5,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.Result;
 import com.drinkmall.dto.MemberCenterResponse;
+import com.drinkmall.dto.RealNameSubmitRequest;
 import com.drinkmall.dto.UpdateProfileRequest;
 import com.drinkmall.dto.UserInfoResponse;
 import com.drinkmall.dto.WithdrawalRequest;
@@ -16,6 +17,7 @@ import com.drinkmall.entity.PointsLog;
 import com.drinkmall.entity.Withdrawal;
 import com.drinkmall.enums.AssetType;
 import com.drinkmall.service.AssetService;
+import com.drinkmall.service.RealNameService;
 import com.drinkmall.service.UserService;
 import com.drinkmall.service.WithdrawalService;
 import jakarta.validation.Valid;
@@ -32,6 +34,7 @@ public class UserController {
     private final UserService userService;
     private final AssetService assetService;
     private final WithdrawalService withdrawalService;
+    private final RealNameService realNameService;
 
     @GetMapping("/info")
     @SaCheckLogin
@@ -69,6 +72,14 @@ public class UserController {
     public Result<Void> applyWithdrawal(@Valid @RequestBody WithdrawalRequest request) {
         Long userId = StpUtil.getLoginIdAsLong();
         withdrawalService.submit(userId, request);
+        return Result.success(null);
+    }
+
+    @PostMapping("/real-name")
+    @SaCheckLogin
+    public Result<Void> submitRealName(@Valid @RequestBody RealNameSubmitRequest request) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        realNameService.submit(userId, request);
         return Result.success(null);
     }
 

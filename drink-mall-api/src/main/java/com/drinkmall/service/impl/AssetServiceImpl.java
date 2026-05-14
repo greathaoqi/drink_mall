@@ -6,11 +6,13 @@ import com.drinkmall.common.BusinessException;
 import com.drinkmall.entity.AssetAccount;
 import com.drinkmall.entity.AssetLog;
 import com.drinkmall.entity.OperationLog;
+import com.drinkmall.entity.SysConfig;
 import com.drinkmall.entity.User;
 import com.drinkmall.enums.AssetType;
 import com.drinkmall.mapper.AssetAccountMapper;
 import com.drinkmall.mapper.AssetLogMapper;
 import com.drinkmall.mapper.OperationLogMapper;
+import com.drinkmall.mapper.SysConfigMapper;
 import com.drinkmall.mapper.UserMapper;
 import com.drinkmall.service.AssetService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ public class AssetServiceImpl implements AssetService {
     private final AssetAccountMapper assetAccountMapper;
     private final AssetLogMapper assetLogMapper;
     private final OperationLogMapper operationLogMapper;
+    private final SysConfigMapper sysConfigMapper;
 
     @Override
     public Map<String, Object> getSummary(Long userId) {
@@ -42,14 +45,18 @@ public class AssetServiceImpl implements AssetService {
         summary.put("wineBean", money(user.getWineBeanBalance()));
         summary.put("points", user.getPoints() == null ? 0 : user.getPoints());
         summary.put("option", money(user.getOptionBalance()));
+        summary.put("optionValue", money(user.getOptionBalance()));
+        summary.put("showOption", optionVisible());
         return summary;
     }
 
     @Override
     public Page<AssetLog> getLogs(Long userId, AssetType assetType, Integer page, Integer size) {
         LambdaQueryWrapper<AssetLog> wrapper = new LambdaQueryWrapper<AssetLog>()
-                .eq(AssetLog::getUserId, userId)
                 .orderByDesc(AssetLog::getCreatedAt);
+        if (userId != null) {
+            wrapper.eq(AssetLog::getUserId, userId);
+        }
         if (assetType != null) {
             wrapper.eq(AssetLog::getAssetType, assetType.getCode());
         }
@@ -267,5 +274,10 @@ public class AssetServiceImpl implements AssetService {
 
     private BigDecimal money(BigDecimal amount) {
         return amount == null ? BigDecimal.ZERO : amount.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private boolean optionVisible() {
+        SysConfig config = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, "asset.option.visible_in_mini"));
+        return config != null && Boolean.parseBoolean(config.getConfigValue());
     }
 }

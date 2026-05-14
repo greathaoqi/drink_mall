@@ -203,6 +203,36 @@ class OrderServiceImplTest {
         assertThat(response.getLogisticsNo()).isEqualTo("SF123456");
     }
 
+    @Test
+    void pendingOrderCanBeCancelledAndRollsBackRewards() {
+        Order pending = pendingOrder("main", "online");
+        when(orderMapper.selectOne(any())).thenReturn(pending);
+        when(orderItemMapper.selectList(any())).thenReturn(List.of(orderItem(50L)));
+
+        orderService.cancelOrder(1L, 100L, "changed mind");
+
+        assertThat(pending.getStatus()).isEqualTo("cancelled");
+        assertThat(pending.getCancelReason()).isEqualTo("changed mind");
+        assertThat(pending.getCancelTime()).isNotNull();
+        verify(orderMapper).updateById(pending);
+        verify(productMapper).update(any(), any());
+        verify(rewardService).rollbackOrderRewards(100L, "user_cancel_order");
+    }
+
+    @Test
+    void shippedOrderCanBeConfirmedAndTriggersRewardUnfreezeCheck() {
+        Order shipped = pendingOrder("main", "online");
+        shipped.setStatus("shipped");
+        when(orderMapper.selectOne(any())).thenReturn(shipped);
+
+        orderService.confirmReceipt(1L, 100L);
+
+        assertThat(shipped.getStatus()).isEqualTo("completed");
+        assertThat(shipped.getCompleteTime()).isNotNull();
+        verify(orderMapper).updateById(shipped);
+        verify(rewardService).unfreezeDueRewards(any(LocalDateTime.class));
+    }
+
     private void mockAddress() {
         Address address = new Address();
         address.setId(2L);

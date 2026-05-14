@@ -20,4 +20,21 @@ public class LoginRequest {
     private Long inviterId;
 
     private String registerSource;
+
+    private String scene;
+
+    private Long sourceProductId;
+
+    public String resolveRegisterSource() {
+        if (registerSource != null && !registerSource.isBlank()) {
+            return registerSource;
+        }
+        if (scene == null || scene.isBlank()) {
+            return null;
+        }
+        if (sourceProductId == null) {
+            return scene;
+        }
+        return scene + ":" + sourceProductId;
+    }
 }

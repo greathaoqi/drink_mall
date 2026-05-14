@@ -1,31 +1,19 @@
-import { http } from '@/utils/request'
+﻿import { http } from '@/utils/request'
 import { useUserStore, type UserInfo } from '@/store/user'
-
-export async function getUserInfo(): Promise<UserInfo | null> {
-  try {
-    const response = await http.get<UserInfo>('/user/info')
-    if (response.code === 200 && response.data) {
-      const userStore = useUserStore()
-      userStore.setUser(response.data)
-      return response.data
-    }
-    return null
-  } catch (error) {
-    return null
-  }
+export const userApi = {
+  profile: () => http.get<UserInfo>('/user/info'),
+  memberCenter: () => http.get<any>('/user/member-center'),
+  submitRealName: (data: any) => http.post('/user/real-name', data, { showLoading: true, loadingText: '提交中' }),
+  inviteCode: () => http.get<{ inviteCode: string }>('/user/invite-code'),
+  verifyAge: () => http.post('/user/verify-age')
 }
-
-export async function verifyAge(): Promise<boolean> {
-  try {
-    const response = await http.post('/user/verify-age')
-    if (response.code === 200) {
-      const userStore = useUserStore()
-      userStore.setAgeVerified(true)
-      return true
-    }
-    return false
-  } catch (error) {
-    console.error('Age verification failed:', error)
-    return false
-  }
+export async function refreshUserInfo() {
+  const res = await userApi.profile()
+  useUserStore().setUser({ ...res.data, token: useUserStore().token })
+  return res.data
+}
+export async function verifyAge() {
+  await userApi.verifyAge()
+  useUserStore().patchUser({ realNameStatus: useUserStore().userInfo?.realNameStatus })
+  return true
 }
