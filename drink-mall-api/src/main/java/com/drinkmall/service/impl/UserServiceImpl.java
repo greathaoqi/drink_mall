@@ -16,6 +16,7 @@ import com.drinkmall.entity.PointsLog;
 import com.drinkmall.entity.SysConfig;
 import com.drinkmall.entity.User;
 import com.drinkmall.entity.Withdrawal;
+import com.drinkmall.enums.UserLevel;
 import com.drinkmall.mapper.BalanceLogMapper;
 import com.drinkmall.mapper.OrderMapper;
 import com.drinkmall.mapper.PointsLogMapper;
@@ -32,13 +33,22 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+
+    private static final String PENDING_CONFIRMATION = "待业务确认";
+    private static final List<String> DISTRIBUTION_LEVEL_CODES = List.of(
+            UserLevel.COUNTY.getCode(),
+            UserLevel.CITY.getCode(),
+            UserLevel.PROVINCE.getCode()
+    );
 
     private final UserMapper userMapper;
     private final BalanceLogMapper balanceLogMapper;
@@ -48,15 +58,6 @@ public class UserServiceImpl implements UserService {
     private final SysConfigMapper sysConfigMapper;
     private final WithdrawalService withdrawalService;
 
-    private static final BigDecimal COUNTY_TARGET = new BigDecimal("50000.00");
-    private static final BigDecimal CITY_TARGET = new BigDecimal("150000.00");
-    private static final String COUNTY_LEVEL = "county";
-    private static final String CITY_LEVEL = "city";
-    private static final Map<String, String> LEVEL_NAMES = Map.of(
-            COUNTY_LEVEL, "县级联营商",
-            CITY_LEVEL, "市级联营商"
-    );
-
     @Override
     public User getById(Long userId) {
         return userMapper.selectById(userId);
@@ -64,9 +65,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User findByOpenid(String openid) {
-        return userMapper.selectOne(
-                new LambdaQueryWrapper<User>().eq(User::getOpenid, openid)
-        );
+        return userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getOpenid, openid));
     }
 
     @Override
@@ -76,11 +75,9 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new BusinessException(404, "用户不存在");
         }
-
         user.setAgeVerified(true);
         user.setAgeVerifiedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-
         userMapper.updateById(user);
         log.info("User {} verified age at {}", userId, user.getAgeVerifiedAt());
     }
@@ -108,7 +105,8 @@ public class UserServiceImpl implements UserService {
         BigDecimal dfBalance = money(user.getDfBalance());
         BigDecimal teamPerformance = money(user.getTeamPerformance());
         Integer points = user.getPoints() == null ? 0 : user.getPoints();
-        String levelCode = normalizeLevel(user.getDistributionLevel(), teamPerformance);
+        String levelCode = normalizeLevel(user.getDistributionLevel());
+        String levelName = levelName(levelCode);
 
         return MemberCenterResponse.builder()
                 .profile(MemberCenterResponse.Profile.builder()
@@ -118,8 +116,8 @@ public class UserServiceImpl implements UserService {
                         .phone(user.getPhone())
                         .maskedPhone(maskPhone(user.getPhone()))
                         .memberLevelCode(levelCode)
-                        .memberLevelName(levelName(levelCode))
-                        .memberTitle(levelName(levelCode) + " 路 鐢熸€佸悎浼欎汉")
+                        .memberLevelName(levelName)
+                        .memberTitle(levelName)
                         .ageVerified(user.getAgeVerified())
                         .build())
                 .summary(MemberCenterResponse.Summary.builder()
@@ -147,25 +145,28 @@ public class UserServiceImpl implements UserService {
     public DistributionLevelOverviewResponse getDistributionLevelOverview(Long userId) {
         User user = requireUser(userId);
         BigDecimal performance = money(user.getTeamPerformance());
-        String currentCode = normalizeLevel(user.getDistributionLevel(), performance);
-        BigDecimal nextTarget = CITY_LEVEL.equals(currentCode) ? CITY_TARGET : CITY_TARGET;
+        String currentCode = normalizeLevel(user.getDistributionLevel());
+        List<LevelRule> rules = distributionLevelRules();
+        List<DistributionLevelItemResponse> levels = rules.stream()
+                .map(rule -> levelItem(rule, performance))
+                .toList();
+        LevelRule currentRule = rules.stream()
+                .filter(rule -> rule.code().equals(currentCode))
+                .findFirst()
+                .orElseGet(() -> rules.isEmpty() ? null : rules.get(0));
+        LevelRule nextRule = rules.stream()
+                .filter(rule -> currentRule == null || rule.order() > currentRule.order())
+                .min(Comparator.comparingInt(LevelRule::order))
+                .orElse(currentRule);
+        BigDecimal nextTarget = nextRule == null ? BigDecimal.ZERO : nextRule.threshold();
         BigDecimal upgradeDifference = nextTarget.subtract(performance).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
         BigDecimal progressPercent = nextTarget.compareTo(BigDecimal.ZERO) == 0
                 ? new BigDecimal("100.00")
                 : performance.multiply(new BigDecimal("100")).divide(nextTarget, 2, RoundingMode.HALF_UP)
                     .min(new BigDecimal("100.00"));
-        List<DistributionLevelItemResponse> levels = List.of(
-                levelItem(COUNTY_LEVEL, "县级联营商", COUNTY_TARGET, performance),
-                levelItem(CITY_LEVEL, "市级联营商", CITY_TARGET, performance)
-        );
-
-        DistributionLevelItemResponse currentLevel = levels.stream()
-                .filter(level -> level.getCode().equals(currentCode))
-                .findFirst()
-                .orElse(levels.get(0));
 
         return DistributionLevelOverviewResponse.builder()
-                .currentLevel(currentLevel)
+                .currentLevel(currentRule == null ? null : levelItem(currentRule, performance))
                 .performanceAmount(performance)
                 .nextTargetAmount(nextTarget)
                 .upgradeDifference(upgradeDifference)
@@ -205,7 +206,9 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void updateProfile(Long userId, String nickname) {
         User user = userMapper.selectById(userId);
-        if (user == null) throw new BusinessException(404, "用户不存在");
+        if (user == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
         user.setNickname(nickname);
         user.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(user);
@@ -220,30 +223,30 @@ public class UserServiceImpl implements UserService {
     @Override
     public Page<BalanceLog> getBalanceLogs(Long userId, Integer page, Integer size) {
         return balanceLogMapper.selectPage(
-            new Page<>(page, size),
-            new LambdaQueryWrapper<BalanceLog>()
-                .eq(BalanceLog::getUserId, userId)
-                .orderByDesc(BalanceLog::getCreatedAt)
+                new Page<>(page, size),
+                new LambdaQueryWrapper<BalanceLog>()
+                        .eq(BalanceLog::getUserId, userId)
+                        .orderByDesc(BalanceLog::getCreatedAt)
         );
     }
 
     @Override
     public Page<PointsLog> getPointsLogs(Long userId, Integer page, Integer size) {
         return pointsLogMapper.selectPage(
-            new Page<>(page, size),
-            new LambdaQueryWrapper<PointsLog>()
-                .eq(PointsLog::getUserId, userId)
-                .orderByDesc(PointsLog::getCreatedAt)
+                new Page<>(page, size),
+                new LambdaQueryWrapper<PointsLog>()
+                        .eq(PointsLog::getUserId, userId)
+                        .orderByDesc(PointsLog::getCreatedAt)
         );
     }
 
     @Override
     public Page<Withdrawal> getUserWithdrawals(Long userId, Integer page, Integer size) {
         return withdrawalMapper.selectPage(
-            new Page<>(page, size),
-            new LambdaQueryWrapper<Withdrawal>()
-                .eq(Withdrawal::getUserId, userId)
-                .orderByDesc(Withdrawal::getCreatedAt)
+                new Page<>(page, size),
+                new LambdaQueryWrapper<Withdrawal>()
+                        .eq(Withdrawal::getUserId, userId)
+                        .orderByDesc(Withdrawal::getCreatedAt)
         );
     }
 
@@ -274,47 +277,86 @@ public class UserServiceImpl implements UserService {
         return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
     }
 
-    private String normalizeLevel(String levelCode, BigDecimal performance) {
-        if (CITY_LEVEL.equals(levelCode) || COUNTY_LEVEL.equals(levelCode)) {
-            return levelCode;
+    private String normalizeLevel(String levelCode) {
+        return levelCode == null || levelCode.isBlank() ? UserLevel.NORMAL.getCode() : levelCode;
+    }
+
+    private List<LevelRule> distributionLevelRules() {
+        List<LevelRule> levels = new ArrayList<>();
+        for (String code : DISTRIBUTION_LEVEL_CODES) {
+            String name = configValue("level." + code + ".name");
+            if (name == null) {
+                continue;
+            }
+            if (isPending(name)) {
+                throw new BusinessException(500, "系统配置待业务确认: level." + code + ".name");
+            }
+            BigDecimal threshold = levelThreshold(code);
+            int order = levelOrder(code);
+            levels.add(new LevelRule(code, name.trim(), threshold, order, levelBenefits(code)));
         }
-        if (performance.compareTo(CITY_TARGET) >= 0) {
-            return CITY_LEVEL;
-        }
-        return COUNTY_LEVEL;
+        levels.sort(Comparator.comparingInt(LevelRule::order));
+        return levels;
     }
 
     private String levelName(String levelCode) {
-        return LEVEL_NAMES.getOrDefault(levelCode, "县级联营商");
+        return requiredConfigValue("level." + levelCode + ".name");
     }
 
-    private DistributionLevelItemResponse levelItem(String code, String name, BigDecimal entryAmount, BigDecimal performance) {
+    private BigDecimal levelThreshold(String levelCode) {
+        return new BigDecimal(requiredConfigValue("level." + levelCode + ".main_performance_threshold"));
+    }
+
+    private int levelOrder(String levelCode) {
+        return Integer.parseInt(requiredConfigValue("level." + levelCode + ".order"));
+    }
+
+    private DistributionLevelItemResponse levelItem(LevelRule rule, BigDecimal performance) {
         return DistributionLevelItemResponse.builder()
-                .code(code)
-                .name(name)
-                .entryAmount(entryAmount)
-                .upgradeDifference(entryAmount.subtract(performance).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP))
-                .achieved(performance.compareTo(entryAmount) >= 0)
-                .benefits(List.of(
-                        "直推首购 20% 佣金",
-                        "招商奖励 20%",
-                        "扶商奖励 10%",
-                        "自购 5 折优惠",
-                        "可提交体验店申请"
-                ))
+                .code(rule.code())
+                .name(rule.name())
+                .entryAmount(rule.threshold())
+                .upgradeDifference(rule.threshold().subtract(performance).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP))
+                .achieved(performance.compareTo(rule.threshold()) >= 0)
+                .benefits(rule.benefits())
                 .build();
     }
 
-    private boolean realNameEnabled() {
-        SysConfig config = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, "real_name.enabled"));
-        if (config == null || config.getConfigValue() == null || config.getConfigValue().isBlank()) {
-            throw new BusinessException(500, "绯荤粺閰嶇疆缂哄け: real_name.enabled");
+    private List<String> levelBenefits(String levelCode) {
+        String value = configValue("level." + levelCode + ".benefits");
+        if (value == null || value.isBlank()) {
+            return List.of();
         }
-        return Boolean.parseBoolean(config.getConfigValue());
+        return Arrays.stream(value.split("\\|"))
+                .map(String::trim)
+                .filter(item -> !item.isBlank())
+                .toList();
+    }
+
+    private String requiredConfigValue(String key) {
+        String value = configValue(key);
+        if (value == null || value.isBlank()) {
+            throw new BusinessException(500, "系统配置缺失: " + key);
+        }
+        if (isPending(value)) {
+            throw new BusinessException(500, "系统配置待业务确认: " + key);
+        }
+        return value.trim();
+    }
+
+    private String configValue(String key) {
+        SysConfig config = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, key));
+        return config == null ? null : config.getConfigValue();
+    }
+
+    private boolean isPending(String value) {
+        return value != null && PENDING_CONFIRMATION.equals(value.trim());
     }
 
     private boolean optionVisible() {
         SysConfig config = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, "asset.option.visible_in_mini"));
         return config != null && Boolean.parseBoolean(config.getConfigValue());
     }
+
+    private record LevelRule(String code, String name, BigDecimal threshold, int order, List<String> benefits) {}
 }

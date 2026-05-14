@@ -50,6 +50,11 @@ wx:
   miniapp:
     appid: ${WX_MINIAPP_APPID:your-appid}
     secret: ${WX_MINIAPP_SECRET:your-secret}
+  pay:
+    callback-verifier: ${WX_PAY_CALLBACK_VERIFIER:wechat}
+    platform-public-key: ${WX_PAY_PLATFORM_PUBLIC_KEY:}
+    api-v3-key: ${WX_PAY_API_V3_KEY:}
+    mock-secret: ${WX_PAY_MOCK_SECRET:}
 
 logging:
   level:

@@ -25,6 +25,8 @@ wx:
   miniapp:
     appid: ${WX_MINIAPP_APPID:test-miniapp-appid}
     secret: ${WX_MINIAPP_SECRET:test-miniapp-secret}
+  pay:
+    callback-verifier: mock
 
 logging:
   level:

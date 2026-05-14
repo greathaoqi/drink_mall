@@ -1,0 +1,20 @@
+-- Make phase-one distribution rules editable from the admin system config page.
+INSERT IGNORE INTO sys_config (config_key, config_value, description) VALUES
+('level.normal.name', '普通会员', '会员等级名称：普通会员'),
+('level.normal.order', '0', '会员等级顺序：普通会员'),
+('level.promoter.name', '推客', '会员等级名称：推客'),
+('level.promoter.order', '1', '会员等级顺序：推客'),
+('level.county.name', '县级联营商', '会员等级名称：县级联营商'),
+('level.county.order', '2', '会员等级顺序：县级联营商'),
+('level.county.main_performance_threshold', '待业务确认', '县级联营商主产品区业绩升级阈值，由后台确认后配置'),
+('level.county.benefits', '主产品区折扣|招商奖励|扶商奖励|广告奖励', '县级联营商权益展示，多个权益用 | 分隔'),
+('level.city.name', '市级联营商', '会员等级名称：市级联营商'),
+('level.city.order', '3', '会员等级顺序：市级联营商'),
+('level.city.main_performance_threshold', '待业务确认', '市级联营商主产品区业绩升级阈值，由后台确认后配置'),
+('level.city.benefits', '主产品区折扣|招商奖励|扶商奖励|广告奖励', '市级联营商权益展示，多个权益用 | 分隔'),
+('level.province.name', '省级联营商', '会员等级名称：省级联营商'),
+('level.province.order', '4', '会员等级顺序：省级联营商'),
+('level.province.main_performance_threshold', '待业务确认', '省级联营商主产品区业绩升级阈值，由后台确认后配置'),
+('level.province.benefits', '主产品区折扣|招商奖励|扶商奖励|广告奖励', '省级联营商权益展示，多个权益用 | 分隔'),
+('investment.package.diff_upgrade.enabled', '待业务确认', '招商礼包补差价升级是否启用，由后台确认后配置'),
+('investment.package.diff_upgrade.rule', '待业务确认', '招商礼包补差价升级规则说明，由后台确认后配置');

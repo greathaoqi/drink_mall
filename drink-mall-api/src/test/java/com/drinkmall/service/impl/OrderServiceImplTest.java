@@ -233,6 +233,69 @@ class OrderServiceImplTest {
         verify(rewardService).unfreezeDueRewards(any(LocalDateTime.class));
     }
 
+    @Test
+    void onlineCallbackMarksPendingOrderPaidOnceAndRunsPaidSideEffects() {
+        Order pending = pendingOrder("retail", "online");
+        Order paid = pendingOrder("retail", "online");
+        paid.setStatus("paid");
+        paid.setPaymentNo("WX-TX-100");
+        OrderItem giftItem = orderItem(60L);
+        giftItem.setGiftPoints(10);
+        User user = user();
+        when(orderMapper.selectOne(any())).thenReturn(pending, paid);
+        when(orderMapper.update(any(), any())).thenReturn(1);
+        when(orderItemMapper.selectList(any())).thenReturn(List.of(giftItem));
+        when(userMapper.selectById(1L)).thenReturn(user);
+
+        orderService.confirmOnlinePaymentCallback("DM100", new BigDecimal("100.00"), "WX-TX-100");
+        orderService.confirmOnlinePaymentCallback("DM100", new BigDecimal("100.00"), "WX-TX-100");
+
+        assertThat(pending.getStatus()).isEqualTo("paid");
+        assertThat(pending.getPaymentNo()).isEqualTo("WX-TX-100");
+        verify(orderMapper, org.mockito.Mockito.times(1)).update(any(), any());
+        verify(rewardService, org.mockito.Mockito.times(1)).settleOrderRewards(pending);
+        verify(pointsLogMapper, org.mockito.Mockito.times(1)).insert(any());
+    }
+
+    @Test
+    void onlineCallbackRejectsAmountMismatchBeforeAnySideEffects() {
+        Order pending = pendingOrder("retail", "online");
+        when(orderMapper.selectOne(any())).thenReturn(pending);
+
+        assertThatThrownBy(() -> orderService.confirmOnlinePaymentCallback("DM100", new BigDecimal("99.99"), "WX-TX-100"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("金额");
+
+        verify(orderMapper, never()).update(any(), any());
+        verify(rewardService, never()).settleOrderRewards(any());
+        verify(pointsLogMapper, never()).insert(any());
+    }
+
+    @Test
+    void onlineCallbackRejectsMissingOrder() {
+        when(orderMapper.selectOne(any())).thenReturn(null);
+
+        assertThatThrownBy(() -> orderService.confirmOnlinePaymentCallback("UNKNOWN", new BigDecimal("100.00"), "WX-TX-404"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("订单");
+
+        verify(orderMapper, never()).update(any(), any());
+    }
+
+    @Test
+    void onlineCallbackForNonPendingOrderIsIdempotentNoop() {
+        Order shipped = pendingOrder("retail", "online");
+        shipped.setStatus("shipped");
+        shipped.setPaymentNo("WX-TX-100");
+        when(orderMapper.selectOne(any())).thenReturn(shipped);
+
+        orderService.confirmOnlinePaymentCallback("DM100", new BigDecimal("100.00"), "WX-TX-100");
+
+        verify(orderMapper, never()).update(any(), any());
+        verify(rewardService, never()).settleOrderRewards(any());
+        verify(pointsLogMapper, never()).insert(any());
+    }
+
     private void mockAddress() {
         Address address = new Address();
         address.setId(2L);

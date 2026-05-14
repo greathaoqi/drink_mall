@@ -16,4 +16,5 @@ public interface OrderService {
     PayResponse payOrder(Long userId, Long orderId, PayOrderRequest request);
     PayResponse payOrderByBalance(Long userId, Long orderId);
     PayResponse getPayParams(Long userId, Long orderId);
+    void confirmOnlinePaymentCallback(String orderNo, java.math.BigDecimal paidAmount, String paymentNo);
 }

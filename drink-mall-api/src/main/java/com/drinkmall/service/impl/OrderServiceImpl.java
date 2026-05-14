@@ -3,6 +3,7 @@ package com.drinkmall.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.BusinessException;
@@ -225,6 +226,52 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(404, "订单不存在");
         }
         return PayResponse.builder().orderNo(order.getOrderNo()).prepayId(order.getPaymentNo()).build();
+    }
+
+    @Override
+    @Transactional
+    public void confirmOnlinePaymentCallback(String orderNo, BigDecimal paidAmount, String paymentNo) {
+        if (orderNo == null || orderNo.isBlank()) {
+            throw new BusinessException(400, "订单号不能为空");
+        }
+        if (paidAmount == null) {
+            throw new BusinessException(400, "支付金额不能为空");
+        }
+        if (paymentNo == null || paymentNo.isBlank()) {
+            throw new BusinessException(400, "微信支付流水号不能为空");
+        }
+
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>().eq(Order::getOrderNo, orderNo));
+        if (order == null) {
+            throw new BusinessException(404, "订单不存在");
+        }
+        if (order.getPayAmount() == null || order.getPayAmount().compareTo(paidAmount) != 0) {
+            throw new BusinessException(400, "支付金额不一致");
+        }
+        if (order.getPaymentMethod() != null && !PaymentMethod.ONLINE.getCode().equals(order.getPaymentMethod())) {
+            throw new BusinessException(400, "订单支付方式不是微信在线支付");
+        }
+        if (!OrderStatus.PENDING.getCode().equals(order.getStatus())) {
+            return;
+        }
+
+        LocalDateTime paidAt = LocalDateTime.now();
+        int updated = orderMapper.update(null, new UpdateWrapper<Order>()
+                .eq("id", order.getId())
+                .eq("status", OrderStatus.PENDING.getCode())
+                .set("status", OrderStatus.PAID.getCode())
+                .set("payment_method", PaymentMethod.ONLINE.getCode())
+                .set("payment_no", paymentNo)
+                .set("payment_time", paidAt));
+        if (updated == 0) {
+            return;
+        }
+
+        order.setStatus(OrderStatus.PAID.getCode());
+        order.setPaymentMethod(PaymentMethod.ONLINE.getCode());
+        order.setPaymentNo(paymentNo);
+        order.setPaymentTime(paidAt);
+        afterOrderPaid(order);
     }
 
     private CheckoutDraft buildDraft(Long userId, CreateOrderRequest request, PaymentMethod paymentMethod) {

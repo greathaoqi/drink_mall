@@ -1,7 +1,9 @@
 package com.drinkmall.service.impl;
 
+import com.drinkmall.common.BusinessException;
 import com.drinkmall.dto.DistributionLevelOverviewResponse;
 import com.drinkmall.dto.MemberCenterResponse;
+import com.drinkmall.entity.SysConfig;
 import com.drinkmall.entity.User;
 import com.drinkmall.mapper.BalanceLogMapper;
 import com.drinkmall.mapper.OrderMapper;
@@ -19,26 +21,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
 
-    @Mock
-    private UserMapper userMapper;
-    @Mock
-    private BalanceLogMapper balanceLogMapper;
-    @Mock
-    private PointsLogMapper pointsLogMapper;
-    @Mock
-    private WithdrawalMapper withdrawalMapper;
-    @Mock
-    private OrderMapper orderMapper;
-    @Mock
-    private SysConfigMapper sysConfigMapper;
-    @Mock
-    private WithdrawalService withdrawalService;
+    @Mock private UserMapper userMapper;
+    @Mock private BalanceLogMapper balanceLogMapper;
+    @Mock private PointsLogMapper pointsLogMapper;
+    @Mock private WithdrawalMapper withdrawalMapper;
+    @Mock private OrderMapper orderMapper;
+    @Mock private SysConfigMapper sysConfigMapper;
+    @Mock private WithdrawalService withdrawalService;
 
     private UserServiceImpl userService;
 
@@ -56,8 +53,11 @@ class UserServiceImplTest {
     }
 
     @Test
-    void getMemberCenterBuildsDesignSummaryFromUserAndOrderCounts() {
+    void getMemberCenterBuildsDesignSummaryFromConfiguredLevelNameAndOrderCounts() {
         when(userMapper.selectById(10001L)).thenReturn(demoUser());
+        when(sysConfigMapper.selectOne(any()))
+                .thenReturn(config("县级联营商"))
+                .thenReturn(config("false"));
         when(orderMapper.selectCount(any()))
                 .thenReturn(1L)
                 .thenReturn(2L)
@@ -83,20 +83,49 @@ class UserServiceImplTest {
     }
 
     @Test
-    void getDistributionLevelOverviewReturnsCurrentProgressAndUpgradeDifference() {
-        when(userMapper.selectById(10001L)).thenReturn(demoUser());
+    void getDistributionLevelOverviewUsesAdminConfiguredLevelThresholdsNamesOrderAndBenefits() {
+        User user = demoUser();
+        user.setTeamPerformance(new BigDecimal("90000.00"));
+        when(userMapper.selectById(10001L)).thenReturn(user);
+        lenient().when(sysConfigMapper.selectOne(any())).thenReturn(null);
+        when(sysConfigMapper.selectOne(any()))
+                .thenReturn(config("县代"))
+                .thenReturn(config("30000.00"))
+                .thenReturn(config("2"))
+                .thenReturn(config("县代后台配置权益"))
+                .thenReturn(config("市代"))
+                .thenReturn(config("100000.00"))
+                .thenReturn(config("3"))
+                .thenReturn(config("市代后台配置权益"))
+                .thenReturn(null);
 
         DistributionLevelOverviewResponse response = userService.getDistributionLevelOverview(10001L);
 
-        assertThat(response.getCurrentLevel().getCode()).isEqualTo("county");
-        assertThat(response.getPerformanceAmount()).isEqualByComparingTo("58400.00");
-        assertThat(response.getNextTargetAmount()).isEqualByComparingTo("150000.00");
-        assertThat(response.getUpgradeDifference()).isEqualByComparingTo("91600.00");
-        assertThat(response.getProgressPercent()).isEqualByComparingTo("38.93");
-        assertThat(response.getLevels()).hasSize(2);
-        assertThat(response.getLevels().get(0).getAchieved()).isTrue();
-        assertThat(response.getLevels().get(0).getBenefits()).contains("直推首购 20% 佣金");
-        assertThat(response.getLevels().get(1).getAchieved()).isFalse();
+        assertThat(response.getCurrentLevel().getName()).isEqualTo("县代");
+        assertThat(response.getNextTargetAmount()).isEqualByComparingTo("100000.00");
+        assertThat(response.getUpgradeDifference()).isEqualByComparingTo("10000.00");
+        assertThat(response.getProgressPercent()).isEqualByComparingTo("90.00");
+        assertThat(response.getLevels()).extracting("name").containsExactly("县代", "市代");
+        assertThat(response.getLevels().get(0).getEntryAmount()).isEqualByComparingTo("30000.00");
+        assertThat(response.getLevels().get(1).getEntryAmount()).isEqualByComparingTo("100000.00");
+        assertThat(response.getLevels().get(0).getBenefits()).containsExactly("县代后台配置权益");
+    }
+
+    @Test
+    void getDistributionLevelOverviewFailsClearlyWhenNextTargetIsPendingConfirmation() {
+        when(userMapper.selectById(10001L)).thenReturn(demoUser());
+        when(sysConfigMapper.selectOne(any()))
+                .thenReturn(config("县级联营商"))
+                .thenReturn(config("50000.00"))
+                .thenReturn(config("2"))
+                .thenReturn(config("县级权益"))
+                .thenReturn(config("市级联营商"))
+                .thenReturn(config("待业务确认"));
+
+        assertThatThrownBy(() -> userService.getDistributionLevelOverview(10001L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("level.city.main_performance_threshold")
+                .hasMessageContaining("待业务确认");
     }
 
     private User demoUser() {
@@ -112,5 +141,11 @@ class UserServiceImplTest {
         user.setTeamPerformance(new BigDecimal("58400.00"));
         user.setDfBalance(new BigDecimal("1500.00"));
         return user;
+    }
+
+    private SysConfig config(String value) {
+        SysConfig config = new SysConfig();
+        config.setConfigValue(value);
+        return config;
     }
 }

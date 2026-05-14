@@ -15,6 +15,10 @@ spring:
 sa-token:
   is-log: true
 
+wx:
+  pay:
+    callback-verifier: mock
+
 logging:
   level:
     com.drinkmall: debug

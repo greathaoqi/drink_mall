@@ -23,19 +23,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class LevelServiceImpl implements LevelService {
 
-    private static final Map<String, Integer> LEVEL_ORDER = Map.of(
-            UserLevel.NORMAL.getCode(), 0,
-            UserLevel.PROMOTER.getCode(), 1,
-            UserLevel.COUNTY.getCode(), 2,
-            UserLevel.CITY.getCode(), 3,
-            UserLevel.PROVINCE.getCode(), 4
-    );
+    private static final String PENDING_CONFIRMATION = "待业务确认";
 
     private final UserMapper userMapper;
     private final SysConfigMapper sysConfigMapper;
@@ -76,8 +69,8 @@ public class LevelServiceImpl implements LevelService {
     @Transactional
     public void upgradeTo(Long userId, String targetLevel, String reason, Long businessId) {
         User user = requireUser(userId);
-        if (!LEVEL_ORDER.containsKey(targetLevel)) {
-            throw new BusinessException(400, "无效等级");
+        if (!hasLevelOrder(targetLevel)) {
+            throw new BusinessException(400, "无效等级: " + targetLevel);
         }
         if (levelOrder(targetLevel) <= levelOrder(user.getDistributionLevel())) {
             return;
@@ -98,15 +91,38 @@ public class LevelServiceImpl implements LevelService {
     }
 
     private int levelOrder(String level) {
-        return LEVEL_ORDER.getOrDefault(level, 0);
+        return configInteger("level." + level + ".order");
     }
 
     private BigDecimal configDecimal(String key) {
+        return new BigDecimal(requiredConfigValue(key));
+    }
+
+    private Integer configInteger(String key) {
+        return new BigDecimal(requiredConfigValue(key)).intValue();
+    }
+
+    private String requiredConfigValue(String key) {
         SysConfig config = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, key));
         if (config == null || config.getConfigValue() == null || config.getConfigValue().isBlank()) {
             throw new BusinessException(500, "系统配置缺失: " + key);
         }
-        return new BigDecimal(config.getConfigValue());
+        if (isPending(config.getConfigValue())) {
+            throw new BusinessException(500, "系统配置待业务确认: " + key);
+        }
+        return config.getConfigValue().trim();
+    }
+
+    private boolean hasLevelOrder(String level) {
+        if (level == null || level.isBlank()) {
+            return false;
+        }
+        SysConfig config = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, "level." + level + ".order"));
+        return config != null && config.getConfigValue() != null && !config.getConfigValue().isBlank() && !isPending(config.getConfigValue());
+    }
+
+    private boolean isPending(String value) {
+        return value != null && PENDING_CONFIRMATION.equals(value.trim());
     }
 
     private BigDecimal value(BigDecimal amount) {
