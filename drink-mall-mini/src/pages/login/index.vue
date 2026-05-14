@@ -10,8 +10,12 @@
         <input v-model.trim="inviteCode" placeholder="请输入邀请码或通过推荐链接进入" />
       </view>
       <view class="hint" v-if="sourceText">推荐来源：{{ sourceText }}</view>
-      <label class="agree"><checkbox :checked="agreed" @click="agreed = !agreed" />我已阅读并同意用户协议和隐私协议</label>
+      <label class="agree">
+        <checkbox :checked="agreed" @click="agreed = !agreed" />
+        我已阅读并同意用户协议和隐私协议
+      </label>
       <button class="primary" :loading="loading" @click="submit">微信快捷登录 / 注册</button>
+      <button class="demo" :loading="demoLoading" @click="enterDemo">进入生产演示账号</button>
       <button class="ghost" @click="goHome">暂不登录，浏览首页</button>
     </view>
   </view>
@@ -20,13 +24,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { wechatLogin } from '@/services/auth'
+import { demoLogin, wechatLogin } from '@/services/auth'
 import { useUserStore } from '@/store/user'
 
 const store = useUserStore()
 const inviteCode = ref(store.referralCode)
 const agreed = ref(false)
 const loading = ref(false)
+const demoLoading = ref(false)
 const scene = ref('')
 const sourceProductId = ref('')
 const sourceText = computed(() => sourceProductId.value ? '商品分享' : (scene.value ? '小程序分享' : (inviteCode.value ? '邀请码' : '')))
@@ -71,6 +76,18 @@ async function submit() {
     loading.value = false
   }
 }
+
+async function enterDemo() {
+  demoLoading.value = true
+  try {
+    await demoLogin()
+    uni.showToast({ title: '已进入演示账号', icon: 'success' })
+    setTimeout(() => uni.switchTab({ url: '/pages/profile/index' }), 300)
+  } finally {
+    demoLoading.value = false
+  }
+}
+
 function goHome() { uni.switchTab({ url: '/pages/index/index' }) }
 </script>
 
@@ -84,8 +101,9 @@ function goHome() { uni.switchTab({ url: '/pages/index/index' }) }
 .field input{height:86rpx;background:#f8f4ed;border-radius:12rpx;padding:0 22rpx}
 .agree{display:flex;align-items:center;margin:28rpx 0;color:#6f6254;font-size:25rpx;line-height:1.45}
 .hint{margin-top:18rpx;color:#b97700;font-size:24rpx}
-.primary,.ghost{height:88rpx;line-height:88rpx;margin-top:20rpx;border:0;border-radius:999rpx;font-size:28rpx}
+.primary,.ghost,.demo{height:88rpx;line-height:88rpx;margin-top:20rpx;border:0;border-radius:999rpx;font-size:28rpx}
 .primary{background:#b97700;color:#fff}
+.demo{background:#2b1207;color:#f0bf55}
 .ghost{background:#fff4df;color:#8a5b0e}
 button:after{border:0}
 </style>

@@ -29,7 +29,7 @@ export const useUserStore = defineStore('user', () => {
   const userInfo = ref<UserInfo | null>(uni.getStorageSync(USER_KEY) || null)
   const referralCode = ref<string>(uni.getStorageSync(REFERRAL_KEY) || '')
   const isLoggedIn = computed(() => !!token.value)
-  const realNameApproved = computed(() => userInfo.value?.realNameStatus === 'APPROVED')
+  const realNameApproved = computed(() => String(userInfo.value?.realNameStatus || '').toLowerCase() === 'approved')
 
   function setReferral(code?: string) {
     referralCode.value = code || ''
