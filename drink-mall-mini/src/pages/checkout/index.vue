@@ -105,7 +105,7 @@ async function submit() {
   try {
     const res = await orderApi.create({
       addressId: address.value.id,
-      payMethod: payMethod.value,
+      paymentMethod: payMethod.value,
       items: items.value.map((i) => ({ cartId: i.cartId, productId: i.productId, quantity: i.quantity }))
     })
     uni.redirectTo({ url: '/pages/order/detail/index?id=' + (res.data.id || res.data.orderId) })

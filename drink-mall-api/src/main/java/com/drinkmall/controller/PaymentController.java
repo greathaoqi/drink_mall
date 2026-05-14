@@ -31,7 +31,7 @@ public class PaymentController {
     @SaCheckLogin
     public Result<PayResponse> pay(@Valid @RequestBody MiniPayRequest request) {
         PayOrderRequest payOrderRequest = new PayOrderRequest();
-        payOrderRequest.setPaymentMethod(request.getPaymentMethod());
+        payOrderRequest.setPaymentMethod(request.resolvePaymentMethod());
         payOrderRequest.setPaymentNo(request.getPaymentNo());
         return Result.success(orderService.payOrder(StpUtil.getLoginIdAsLong(), request.getOrderId(), payOrderRequest));
     }
@@ -40,6 +40,11 @@ public class PaymentController {
     public static class MiniPayRequest {
         private Long orderId;
         private String paymentMethod;
+        private String payMethod;
         private String paymentNo;
+
+        public String resolvePaymentMethod() {
+            return paymentMethod == null || paymentMethod.isBlank() ? payMethod : paymentMethod;
+        }
     }
 }
