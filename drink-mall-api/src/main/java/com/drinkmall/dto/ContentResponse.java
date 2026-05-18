@@ -31,6 +31,7 @@ public class ContentResponse {
     private List<PaymentMethodResponse> availablePayMethods;
     private String lockReason;
     private Integer likes;
+    private Boolean userLiked;  // Whether current user has liked this content
 
     public static ContentResponse fromVideo(Video video, boolean purchased, BigDecimal price,
                                             ContentAccessDecision access,
