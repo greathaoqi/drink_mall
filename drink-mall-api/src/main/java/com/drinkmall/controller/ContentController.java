@@ -66,6 +66,7 @@ public class ContentController {
     public Result<IPage<ContentResponse>> getContent(
             @RequestParam(defaultValue = TYPE_VIDEO) String type,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
         Long userId = currentUserId();
@@ -76,6 +77,9 @@ public class ContentController {
             if (likePattern != null) {
                 wrapper.like(HelpArticle::getTitle, likePattern);
             }
+            if (categoryId != null) {
+                wrapper.eq(HelpArticle::getCategoryId, categoryId);
+            }
             wrapper.orderByDesc(HelpArticle::getCreatedAt);
             IPage<ContentResponse> result = helpArticleMapper.selectPage(new Page<>(page, size), wrapper)
                     .convert(article -> articleResponse(article, userId));
@@ -85,6 +89,9 @@ public class ContentController {
                 .eq(Video::getStatus, 1);
         if (likePattern != null) {
             wrapper.like(Video::getTitle, likePattern);
+        }
+        if (categoryId != null) {
+            wrapper.eq(Video::getCategoryId, categoryId);
         }
         wrapper.orderByDesc(Video::getCreatedAt);
         IPage<ContentResponse> result = videoMapper.selectPage(new Page<>(page, size), wrapper)
