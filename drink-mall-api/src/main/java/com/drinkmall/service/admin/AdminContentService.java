@@ -21,4 +21,26 @@ public interface AdminContentService {
     HelpArticle createHelpArticle(HelpArticle article);
     HelpArticle updateHelpArticle(HelpArticle article);
     void deleteHelpArticle(Long articleId);
+
+    /**
+     * Get all content categories.
+     * Per D-CAT-03: flat categories only, no hierarchy.
+     */
+    List<ContentCategory> getCategories();
+
+    /**
+     * Create a new category.
+     */
+    ContentCategory createCategory(ContentCategory category);
+
+    /**
+     * Update an existing category.
+     */
+    ContentCategory updateCategory(ContentCategory category);
+
+    /**
+     * Delete a category (sets status to 0, does not physically delete).
+     * Per D-CAT-04: shared categories between Video and HelpArticle.
+     */
+    void deleteCategory(Long categoryId);
 }
