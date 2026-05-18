@@ -20,6 +20,7 @@ public class HelpArticle {
     private Integer likes;
     private Integer sortOrder;
     private Integer status;
+    private Long categoryId;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
