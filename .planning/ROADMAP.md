@@ -161,11 +161,23 @@ Plans:
 - [ ] 06-01-PLAN.md - Database schema for content payment, categories, likes
 - [ ] 06-02-PLAN.md - Content payment flow with WeChat Pay integration
 - [ ] 06-03-PLAN.md - Content keyword search endpoint
-- [ ] 06-04-PLAN.md - Dynamic content category management (admin CRUD)
+- [ ] 06-04-PLAN.md - Dynamic content category management (admin CRUD + public endpoint)
 - [ ] 06-05-PLAN.md - Content preview/teaser for unpurchased content
 - [ ] 06-06-PLAN.md - Like/unlike functionality with atomic counts
 - [ ] 06-07-PLAN.md - Admin purchase records and analytics
 - [ ] 06-08-PLAN.md - Mini Program content UI updates
+
+**Wave Structure:**
+- Wave 1: 06-01 (database foundation)
+- Wave 2 *(blocked on Wave 1)*: 06-02, 06-03, 06-04 (payment, search, categories)
+- Wave 3 *(blocked on Wave 2)*: 06-05, 06-06 (preview, likes)
+- Wave 4 *(blocked on Wave 3)*: 06-07 (admin analytics)
+- Wave 5 *(blocked on Wave 4)*: 06-08 (Mini Program UI)
+
+**Cross-cutting constraints:**
+- All payment operations use CP prefix for order dispatch
+- All like operations check purchase status before allowing
+- All search queries filter by status=1 (published only)
 
 **UI hint:** yes
 
