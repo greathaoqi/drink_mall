@@ -5,11 +5,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.entity.Announcement;
 import com.drinkmall.entity.Banner;
+import com.drinkmall.entity.ContentCategory;
 import com.drinkmall.entity.HelpArticle;
 import com.drinkmall.entity.OperationLog;
 import com.drinkmall.entity.Video;
 import com.drinkmall.mapper.AnnouncementMapper;
 import com.drinkmall.mapper.BannerMapper;
+import com.drinkmall.mapper.ContentCategoryMapper;
 import com.drinkmall.mapper.HelpArticleMapper;
 import com.drinkmall.mapper.OperationLogMapper;
 import com.drinkmall.mapper.VideoMapper;
@@ -32,6 +34,7 @@ public class AdminContentServiceImpl implements AdminContentService {
     private final VideoMapper videoMapper;
     private final HelpArticleMapper helpArticleMapper;
     private final OperationLogMapper operationLogMapper;
+    private final ContentCategoryMapper contentCategoryMapper;
 
     @Override
     public List<Banner> getBanners(String location) {
@@ -169,6 +172,59 @@ public class AdminContentServiceImpl implements AdminContentService {
         HelpArticle before = helpArticleMapper.selectById(articleId);
         helpArticleMapper.deleteById(articleId);
         logOperation("help_article", "delete", articleId, articleSummary(before), null);
+    }
+
+    @Override
+    public List<ContentCategory> getCategories() {
+        return contentCategoryMapper.selectList(
+                new LambdaQueryWrapper<ContentCategory>()
+                        .eq(ContentCategory::getStatus, 1)
+                        .orderByAsc(ContentCategory::getSortOrder)
+        );
+    }
+
+    @Override
+    @Transactional
+    public ContentCategory createCategory(ContentCategory category) {
+        category.setStatus(1);
+        if (category.getSortOrder() == null) {
+            category.setSortOrder(0);
+        }
+        category.setCreatedAt(LocalDateTime.now());
+        contentCategoryMapper.insert(category);
+        logOperation("content_category", "create", category.getId(), null, categorySummary(category));
+        return category;
+    }
+
+    @Override
+    @Transactional
+    public ContentCategory updateCategory(ContentCategory category) {
+        ContentCategory before = contentCategoryMapper.selectById(category.getId());
+        category.setUpdatedAt(LocalDateTime.now());
+        contentCategoryMapper.updateById(category);
+        logOperation("content_category", "update", category.getId(), categorySummary(before), categorySummary(category));
+        return category;
+    }
+
+    @Override
+    @Transactional
+    public void deleteCategory(Long categoryId) {
+        // Soft delete - set status to 0
+        ContentCategory category = contentCategoryMapper.selectById(categoryId);
+        if (category != null) {
+            category.setStatus(0);
+            category.setUpdatedAt(LocalDateTime.now());
+            contentCategoryMapper.updateById(category);
+            logOperation("content_category", "delete", categoryId, categorySummary(category), null);
+        }
+    }
+
+    private String categorySummary(ContentCategory category) {
+        if (category == null) return null;
+        return "id=" + category.getId()
+                + ", name=" + category.getName()
+                + ", sortOrder=" + category.getSortOrder()
+                + ", status=" + category.getStatus();
     }
 
     private String bannerSummary(Banner banner) {
