@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.BusinessException;
 import com.drinkmall.common.Result;
 import com.drinkmall.dto.ContentResponse;
+import com.drinkmall.dto.PayResponse;
 import com.drinkmall.dto.PaymentMethodResponse;
 import com.drinkmall.entity.Announcement;
 import com.drinkmall.entity.ContentPurchase;
@@ -23,6 +24,7 @@ import com.drinkmall.mapper.SysConfigMapper;
 import com.drinkmall.mapper.UserMapper;
 import com.drinkmall.mapper.VideoMapper;
 import com.drinkmall.service.AssetService;
+import com.drinkmall.service.ContentPurchaseService;
 import com.drinkmall.service.support.ContentAccessDecision;
 import com.drinkmall.service.support.ContentAccessPolicy;
 import lombok.Data;
@@ -55,6 +57,7 @@ public class ContentController {
     private final SysConfigMapper sysConfigMapper;
     private final UserMapper userMapper;
     private final AssetService assetService;
+    private final ContentPurchaseService contentPurchaseService;
 
     @GetMapping
     public Result<IPage<ContentResponse>> getContent(
@@ -139,12 +142,13 @@ public class ContentController {
     @PostMapping("/{id}/buy")
     @SaCheckLogin
     @Transactional
-    public Result<ContentResponse> buy(
+    public Result<?> buy(
             @PathVariable Long id,
             @RequestParam(defaultValue = TYPE_VIDEO) String type,
             @RequestBody(required = false) BuyContentRequest request) {
         Long userId = StpUtil.getLoginIdAsLong();
-        if (isPurchased(userId, type, id)) {
+        // Check if already purchased using ContentPurchaseService (paid status only)
+        if (contentPurchaseService.hasPurchased(userId, type, id)) {
             return getDetail(id, type);
         }
         ContentRuntime runtime = runtime(type, id, userId);
@@ -156,6 +160,14 @@ public class ContentController {
             throw new BusinessException(400, "请选择内容支付方式");
         }
         ensurePaymentMethodAllowed(payMethod, runtime.payMethods());
+
+        // For online payment, create prepay order and return PayResponse
+        if ("online".equals(payMethod)) {
+            PayResponse payResponse = contentPurchaseService.createPrepayOrder(userId, type, id, runtime.price());
+            return Result.success(payResponse);
+        }
+
+        // For other payment methods, use existing flow
         pay(userId, type, id, runtime.price(), payMethod);
         insertPurchase(userId, type, id, runtime.price(), payMethod);
         return getDetail(id, type);
