@@ -17,11 +17,19 @@ public enum PaymentMethod {
     }
 
     public static PaymentMethod fromCode(String code) {
+        if (code == null || code.isBlank()) {
+            return null;
+        }
         for (PaymentMethod method : values()) {
             if (method.code.equals(code)) {
                 return method;
             }
         }
-        throw new IllegalArgumentException("Unsupported payment method: " + code);
+        return null;
+    }
+
+    public static PaymentMethod fromCodeOrDefault(String code) {
+        PaymentMethod method = fromCode(code);
+        return method == null ? ONLINE : method;
     }
 }

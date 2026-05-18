@@ -79,10 +79,14 @@ public class AdminFinanceController {
 
     @PostMapping("/assets/adjust")
     public Result<Void> adjustAsset(@Valid @RequestBody AssetAdjustRequest request) {
+        AssetType assetType = AssetType.fromCode(request.getAssetType());
+        if (assetType == null) {
+            return Result.error(400, "无效的资产类型: " + request.getAssetType());
+        }
         adminFinanceService.adjustAsset(
                 StpUtil.getLoginIdAsLong(),
                 request.getUserId(),
-                AssetType.fromCode(request.getAssetType()),
+                assetType,
                 request.getAmount(),
                 request.getReason()
         );

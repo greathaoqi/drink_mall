@@ -20,11 +20,22 @@ public enum AssetType {
     }
 
     public static AssetType fromCode(String code) {
+        if (code == null || code.isBlank()) {
+            return null;
+        }
         for (AssetType type : values()) {
             if (type.code.equals(code)) {
                 return type;
             }
         }
-        throw new IllegalArgumentException("Unsupported asset type: " + code);
+        return null;
+    }
+
+    public static AssetType fromCodeOrThrow(String code) {
+        AssetType type = fromCode(code);
+        if (type == null) {
+            throw new IllegalArgumentException("Unsupported asset type: " + code);
+        }
+        return type;
     }
 }

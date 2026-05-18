@@ -588,7 +588,7 @@ public class OrderServiceImpl implements OrderService {
     private PaymentMethod resolvePaymentMethod(String paymentMethod) {
         return paymentMethod == null || paymentMethod.isBlank()
                 ? PaymentMethod.ONLINE
-                : PaymentMethod.fromCode(paymentMethod);
+                : PaymentMethod.fromCodeOrDefault(paymentMethod);
     }
 
     private int pointsPrice(Product product) {
