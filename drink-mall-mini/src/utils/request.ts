@@ -9,6 +9,7 @@ export interface RequestOptions {
   showError?: boolean
   requireAuth?: boolean
   loadingText?: string
+  timeout?: number
 }
 
 export interface ApiResponse<T = any> {
@@ -42,7 +43,7 @@ function goLogin() {
 }
 
 export async function request<T = any>(options: RequestOptions): Promise<ApiResponse<T>> {
-  const { url, method = 'GET', data, header = {}, showLoading = false, showError = true, requireAuth = true, loadingText = '加载中' } = options
+  const { url, method = 'GET', data, header = {}, showLoading = false, showError = true, requireAuth = true, loadingText = '加载中', timeout = 30000 } = options
   const userStore = useUserStore()
 
   if (requireAuth && !userStore.token) {
@@ -53,6 +54,7 @@ export async function request<T = any>(options: RequestOptions): Promise<ApiResp
 
   try {
     const response = await new Promise<ApiResponse<T>>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('请求超时，请检查网络后重试')), timeout)
       uni.request({
         url: buildUrl(url, data, method),
         method,
@@ -62,7 +64,9 @@ export async function request<T = any>(options: RequestOptions): Promise<ApiResp
           ...(userStore.token ? { Authorization: userStore.token, token: userStore.token } : {}),
           ...header
         },
+        timeout,
         success: (res) => {
+          clearTimeout(timer)
           if (res.statusCode === 401) {
             userStore.clearUser()
             if (requireAuth) goLogin()
@@ -86,7 +90,10 @@ export async function request<T = any>(options: RequestOptions): Promise<ApiResp
           }
           resolve(body)
         },
-        fail: (err) => reject(new Error(err.errMsg || '网络异常，请稍后重试'))
+        fail: (err) => {
+          clearTimeout(timer)
+          reject(new Error(err.errMsg || '网络异常，请稍后重试'))
+        }
       })
     })
     return response
