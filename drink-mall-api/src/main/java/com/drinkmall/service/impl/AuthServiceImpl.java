@@ -82,7 +82,7 @@ public class AuthServiceImpl implements AuthService {
             user.setOpenid("demo-openid");
             user.setUnionid("demo-unionid");
             user.setNickname("演示用户");
-            user.setAvatarUrl("https://img.yzcdn.cn/vant/cat.jpeg");
+            user.setAvatarUrl("/static/images/page-profile.png");
             user.setPhone("13800138000");
             user.setBalance(new BigDecimal("9999.00"));
             user.setFrozenBalance(BigDecimal.ZERO);
