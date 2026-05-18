@@ -11,6 +11,7 @@ import com.drinkmall.dto.ContentResponse;
 import com.drinkmall.dto.PayResponse;
 import com.drinkmall.dto.PaymentMethodResponse;
 import com.drinkmall.entity.Announcement;
+import com.drinkmall.entity.ContentCategory;
 import com.drinkmall.entity.ContentPurchase;
 import com.drinkmall.entity.HelpArticle;
 import com.drinkmall.entity.SysConfig;
@@ -25,6 +26,7 @@ import com.drinkmall.mapper.UserMapper;
 import com.drinkmall.mapper.VideoMapper;
 import com.drinkmall.service.AssetService;
 import com.drinkmall.service.ContentPurchaseService;
+import com.drinkmall.service.admin.AdminContentService;
 import com.drinkmall.service.support.ContentAccessDecision;
 import com.drinkmall.service.support.ContentAccessPolicy;
 import lombok.Data;
@@ -58,6 +60,7 @@ public class ContentController {
     private final UserMapper userMapper;
     private final AssetService assetService;
     private final ContentPurchaseService contentPurchaseService;
+    private final AdminContentService adminContentService;
 
     @GetMapping
     public Result<IPage<ContentResponse>> getContent(
@@ -128,6 +131,16 @@ public class ContentController {
         }
         wrapper.orderByAsc(HelpArticle::getSortOrder);
         return Result.success(helpArticleMapper.selectList(wrapper));
+    }
+
+    /**
+     * Get public category list for Mini Program category filter.
+     * Per D-CAT-05: Returns active categories for filter dropdown.
+     * This is a public endpoint - no authentication required.
+     */
+    @GetMapping("/categories")
+    public Result<List<ContentCategory>> getCategories() {
+        return Result.success(adminContentService.getCategories());
     }
 
     @GetMapping("/{id}")
