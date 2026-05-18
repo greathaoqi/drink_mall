@@ -19,6 +19,31 @@
       </view>
     </view>
 
+    <!-- D-SEARCH-04: Search bar for content search -->
+    <view class="search-bar">
+      <input
+        class="search-input"
+        type="text"
+        placeholder="搜索内容..."
+        v-model="keyword"
+        @confirm="search"
+      />
+      <button class="search-btn" @click="search">搜索</button>
+    </view>
+
+    <!-- D-CAT-05: Category filter tabs -->
+    <view v-if="categories.length > 0" class="category-filter">
+      <view
+        v-for="cat in [{id: null, name: '全部'}, ...categories]"
+        :key="cat.id || 'all'"
+        class="category-tag"
+        :class="{ active: categoryId === cat.id }"
+        @click="selectCategory(cat.id)"
+      >
+        <text>{{ cat.name }}</text>
+      </view>
+    </view>
+
     <view class="content-body">
       <view v-if="activeTab === 'recommend' && pinnedAnnouncement" class="pinned dm-card dm-press" @click="goAnnouncement(pinnedAnnouncement.id)">
         <text class="pin-tag">置顶</text>
@@ -83,6 +108,10 @@ const activeTab = ref('recommend')
 const items = ref<any[]>([])
 const announcements = ref<any[]>([])
 const loading = ref(false)
+// D-SEARCH-04, D-CAT-05: Search and category filter state
+const keyword = ref('')
+const categoryId = ref<number | null>(null)
+const categories = ref<any[]>([])
 
 const activeType = computed(() => tabs.find((tab) => tab.key === activeTab.value)?.type || '')
 const pinnedAnnouncement = computed(() => announcements.value[0])
@@ -103,10 +132,32 @@ function selectTab(key: string) {
 async function load() {
   loading.value = true
   try {
-    const params = activeType.value ? { type: activeType.value } : {}
+    const params: any = { type: activeType.value }
+    if (keyword.value) params.keyword = keyword.value
+    if (categoryId.value) params.categoryId = categoryId.value
     items.value = listOf((await contentApi.list(params)).data)
   } finally {
     loading.value = false
+  }
+}
+
+// D-SEARCH-04: Search trigger function
+function search() {
+  load()
+}
+
+// D-CAT-05: Category selection function
+function selectCategory(id: number | null) {
+  categoryId.value = id
+  load()
+}
+
+// D-CAT-05: Load categories for filter
+async function loadCategories() {
+  try {
+    categories.value = (await contentApi.getCategories()).data || []
+  } catch (e) {
+    categories.value = []
   }
 }
 
@@ -152,6 +203,7 @@ onLoad((options: any) => {
 onShow(() => {
   load()
   loadAnnouncements()
+  loadCategories()
 })
 </script>
 
@@ -226,6 +278,61 @@ onShow(() => {
   height: 4rpx;
   transform: translateX(-50%);
   background: var(--dm-grad-gold);
+}
+
+/* D-SEARCH-04: Search bar styles */
+.search-bar {
+  display: flex;
+  gap: 16rpx;
+  padding: 20rpx 32rpx;
+  background: #FFFFFF;
+}
+
+.search-input {
+  flex: 1;
+  height: 72rpx;
+  padding: 0 24rpx;
+  border: 2rpx solid var(--dm-line);
+  border-radius: var(--dm-radius-pill);
+  background: #FFFFFF;
+  font-size: 28rpx;
+}
+
+.search-btn {
+  width: 140rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: var(--dm-radius-pill);
+  background: var(--dm-grad-gold);
+  color: #3A1A00;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+/* D-CAT-05: Category filter styles */
+.category-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 16rpx 32rpx;
+  background: #FFFFFF;
+}
+
+.category-tag {
+  display: inline-flex;
+  padding: 12rpx 24rpx;
+  border: 2rpx solid var(--dm-line);
+  border-radius: var(--dm-radius-pill);
+  background: #FFFFFF;
+  color: var(--dm-text-2);
+  font-size: 26rpx;
+}
+
+.category-tag.active {
+  border-color: var(--dm-gold-500);
+  background: var(--dm-gold-50);
+  color: var(--dm-gold-600);
+  font-weight: 700;
 }
 
 .content-body {
