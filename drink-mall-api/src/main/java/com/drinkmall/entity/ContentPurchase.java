@@ -19,5 +19,9 @@ public class ContentPurchase {
     private BigDecimal price;
     private String paymentMethod;
     private String idempotencyKey;
+    private String status = "pending";  // pending, paid, cancelled, expired
+    private String orderNo;  // CP-prefixed order number
+    private String paymentNo;  // WeChat Pay transaction ID
+    private LocalDateTime paymentTime;  // Payment confirmation time
     private LocalDateTime createdAt;
 }
