@@ -105,16 +105,34 @@ async function buy() {
     return
   }
   if (!payMethod.value || !selectedMethod.value) {
-    uni.showToast({ title: '请选择单一支付方式', icon: 'none' })
+    uni.showToast({ title: '请选择支付方式', icon: 'none' })
     return
   }
   if (selectedMethod.value.disabled) {
     uni.showToast({ title: selectedMethod.value.insufficientText || '当前支付方式不可用', icon: 'none' })
     return
   }
-  await contentApi.buy(id.value, type.value, payMethod.value)
-  uni.showToast({ title: '购买成功', icon: 'success' })
-  load()
+
+  try {
+    const res = await contentApi.buy(id.value, type.value, payMethod.value)
+
+    // D-CPAY-05: Check if response is PayResponse (online payment)
+    if (res.data && res.data.orderNo && res.data.prepayId) {
+      // Online payment: show payment created message
+      // For actual WeChat Pay integration, would need wx.requestPayment API call
+      uni.showToast({ title: '支付订单已创建', icon: 'success' })
+      // Poll for payment status or wait for callback
+      // For demo/Phase 1: reload to check status
+      setTimeout(() => load(), 2000)
+    } else {
+      // Non-online payment: immediate success
+      uni.showToast({ title: '购买成功', icon: 'success' })
+      load()
+    }
+  } catch (e: any) {
+    // D-CPAY-09: Show error toast on failure
+    uni.showToast({ title: e.message || '购买失败', icon: 'none' })
+  }
 }
 
 // D-LIKE-01: Toggle like function
