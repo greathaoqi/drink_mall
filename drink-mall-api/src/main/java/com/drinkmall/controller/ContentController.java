@@ -3,6 +3,7 @@ package com.drinkmall.controller;
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.BusinessException;
@@ -12,6 +13,7 @@ import com.drinkmall.dto.PayResponse;
 import com.drinkmall.dto.PaymentMethodResponse;
 import com.drinkmall.entity.Announcement;
 import com.drinkmall.entity.ContentCategory;
+import com.drinkmall.entity.ContentLike;
 import com.drinkmall.entity.ContentPurchase;
 import com.drinkmall.entity.HelpArticle;
 import com.drinkmall.entity.SysConfig;
@@ -19,6 +21,7 @@ import com.drinkmall.entity.User;
 import com.drinkmall.entity.Video;
 import com.drinkmall.enums.AssetType;
 import com.drinkmall.mapper.AnnouncementMapper;
+import com.drinkmall.mapper.ContentLikeMapper;
 import com.drinkmall.mapper.ContentPurchaseMapper;
 import com.drinkmall.mapper.HelpArticleMapper;
 import com.drinkmall.mapper.SysConfigMapper;
@@ -43,6 +46,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/content")
@@ -55,6 +59,7 @@ public class ContentController {
     private final AnnouncementMapper announcementMapper;
     private final VideoMapper videoMapper;
     private final HelpArticleMapper helpArticleMapper;
+    private final ContentLikeMapper contentLikeMapper;
     private final ContentPurchaseMapper contentPurchaseMapper;
     private final SysConfigMapper sysConfigMapper;
     private final UserMapper userMapper;
@@ -206,7 +211,11 @@ public class ContentController {
         BigDecimal price = price(video.getPaid(), video.getPrice());
         List<PaymentMethodResponse> payMethods = paymentMethods(video.getPaymentMethods());
         ContentAccessDecision access = access(userId, video.getWatchLevel(), Boolean.TRUE.equals(video.getPaid()), price, purchased);
-        return ContentResponse.fromVideo(video, purchased, price, access, payMethods);
+        boolean userLiked = hasUserLiked(userId, TYPE_VIDEO, video.getId());
+        return ContentResponse.fromVideo(video, purchased, price, access, payMethods)
+                .toBuilder()
+                .userLiked(userLiked)
+                .build();
     }
 
     private ContentResponse articleResponse(HelpArticle article, Long userId) {
@@ -214,7 +223,11 @@ public class ContentController {
         BigDecimal price = price(article.getPaid(), article.getPrice());
         List<PaymentMethodResponse> payMethods = paymentMethods(article.getPaymentMethods());
         ContentAccessDecision access = access(userId, article.getWatchLevel(), Boolean.TRUE.equals(article.getPaid()), price, purchased);
-        return ContentResponse.fromArticle(article, purchased, price, access, payMethods);
+        boolean userLiked = hasUserLiked(userId, TYPE_ARTICLE, article.getId());
+        return ContentResponse.fromArticle(article, purchased, price, access, payMethods)
+                .toBuilder()
+                .userLiked(userLiked)
+                .build();
     }
 
     private ContentRuntime runtime(String type, Long id, Long userId) {
@@ -302,6 +315,96 @@ public class ContentController {
                 .eq(ContentPurchase::getContentType, type)
                 .eq(ContentPurchase::getContentId, id));
         return count != null && count > 0;
+    }
+
+    /**
+     * D-LIKE-02: Check if user has liked specific content.
+     */
+    private boolean hasUserLiked(Long userId, String contentType, Long contentId) {
+        if (userId == null) return false;
+        Long count = contentLikeMapper.selectCount(
+                new LambdaQueryWrapper<ContentLike>()
+                        .eq(ContentLike::getUserId, userId)
+                        .eq(ContentLike::getContentType, contentType)
+                        .eq(ContentLike::getContentId, contentId)
+        );
+        return count != null && count > 0;
+    }
+
+    /**
+     * D-LIKE-01: Toggle like/unlike for content.
+     * D-LIKE-04: Only purchased content can be liked.
+     * D-LIKE-06: No rate limit on likes.
+     */
+    @PostMapping("/{id}/like")
+    @SaCheckLogin
+    @Transactional
+    public Result<Map<String, Object>> toggleLike(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = TYPE_VIDEO) String type) {
+        Long userId = StpUtil.getLoginIdAsLong();
+
+        // D-LIKE-04: Only purchased content can be liked
+        if (!contentPurchaseService.hasPurchased(userId, type, id)) {
+            throw new BusinessException(400, "请先购买内容后再点赞");
+        }
+
+        // Check if already liked
+        ContentLike existing = contentLikeMapper.selectOne(
+                new LambdaQueryWrapper<ContentLike>()
+                        .eq(ContentLike::getUserId, userId)
+                        .eq(ContentLike::getContentType, type)
+                        .eq(ContentLike::getContentId, id)
+        );
+
+        boolean liked;
+        if (existing != null) {
+            // Unlike: delete record, decrement count (D-LIKE-01)
+            contentLikeMapper.deleteById(existing.getId());
+            updateLikeCount(type, id, -1);
+            liked = false;
+        } else {
+            // Like: insert record, increment count
+            ContentLike like = new ContentLike();
+            like.setUserId(userId);
+            like.setContentType(type);
+            like.setContentId(id);
+            like.setCreatedAt(LocalDateTime.now());
+            contentLikeMapper.insert(like);
+            updateLikeCount(type, id, 1);
+            liked = true;
+        }
+
+        // Return new like count
+        Integer currentLikes = getLikeCount(type, id);
+        return Result.success(Map.of(
+                "liked", liked,
+                "likes", currentLikes
+        ));
+    }
+
+    /**
+     * D-LIKE-03, T-6-06: Atomic update to prevent race conditions.
+     */
+    private void updateLikeCount(String type, Long contentId, int delta) {
+        if (TYPE_ARTICLE.equals(type)) {
+            helpArticleMapper.update(null, new LambdaUpdateWrapper<HelpArticle>()
+                    .eq(HelpArticle::getId, contentId)
+                    .setSql("likes = GREATEST(0, likes + " + delta + ")"));
+        } else {
+            videoMapper.update(null, new LambdaUpdateWrapper<Video>()
+                    .eq(Video::getId, contentId)
+                    .setSql("likes = GREATEST(0, likes + " + delta + ")"));
+        }
+    }
+
+    private Integer getLikeCount(String type, Long contentId) {
+        if (TYPE_ARTICLE.equals(type)) {
+            HelpArticle article = helpArticleMapper.selectById(contentId);
+            return article != null && article.getLikes() != null ? article.getLikes() : 0;
+        }
+        Video video = videoMapper.selectById(contentId);
+        return video != null && video.getLikes() != null ? video.getLikes() : 0;
     }
 
     private BigDecimal price(Boolean paid, BigDecimal price) {

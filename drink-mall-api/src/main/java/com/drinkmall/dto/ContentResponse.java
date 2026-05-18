@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 public class ContentResponse {
     private Long id;
     private String title;
