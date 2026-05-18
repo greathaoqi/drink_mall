@@ -1,5 +1,6 @@
 package com.drinkmall.service.admin;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.dto.ContentAnalyticsResponse;
 import com.drinkmall.dto.ContentPurchaseRecordResponse;
@@ -50,7 +51,7 @@ public interface AdminContentService {
      * Get content purchase records with pagination.
      * Per D-ANALYTICS-02: shows user, content title, price, payment method, time.
      */
-    Page<ContentPurchaseRecordResponse> getPurchaseRecords(
+    IPage<ContentPurchaseRecordResponse> getPurchaseRecords(
         String contentType,
         String status,
         Long userId,

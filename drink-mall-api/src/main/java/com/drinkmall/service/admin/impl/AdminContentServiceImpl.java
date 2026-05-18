@@ -2,26 +2,37 @@ package com.drinkmall.service.admin.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.drinkmall.dto.ContentAnalyticsResponse;
+import com.drinkmall.dto.ContentPurchaseRecordResponse;
 import com.drinkmall.entity.Announcement;
 import com.drinkmall.entity.Banner;
 import com.drinkmall.entity.ContentCategory;
+import com.drinkmall.entity.ContentPurchase;
 import com.drinkmall.entity.HelpArticle;
 import com.drinkmall.entity.OperationLog;
+import com.drinkmall.entity.User;
 import com.drinkmall.entity.Video;
 import com.drinkmall.mapper.AnnouncementMapper;
 import com.drinkmall.mapper.BannerMapper;
 import com.drinkmall.mapper.ContentCategoryMapper;
+import com.drinkmall.mapper.ContentPurchaseMapper;
 import com.drinkmall.mapper.HelpArticleMapper;
 import com.drinkmall.mapper.OperationLogMapper;
+import com.drinkmall.mapper.UserMapper;
 import com.drinkmall.mapper.VideoMapper;
 import com.drinkmall.service.admin.AdminContentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +46,8 @@ public class AdminContentServiceImpl implements AdminContentService {
     private final HelpArticleMapper helpArticleMapper;
     private final OperationLogMapper operationLogMapper;
     private final ContentCategoryMapper contentCategoryMapper;
+    private final ContentPurchaseMapper contentPurchaseMapper;
+    private final UserMapper userMapper;
 
     @Override
     public List<Banner> getBanners(String location) {
@@ -284,5 +297,143 @@ public class AdminContentServiceImpl implements AdminContentService {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    @Override
+    public IPage<ContentPurchaseRecordResponse> getPurchaseRecords(
+            String contentType, String status, Long userId,
+            Integer page, Integer size) {
+        LambdaQueryWrapper<ContentPurchase> wrapper = new LambdaQueryWrapper<>();
+        if (contentType != null && !contentType.isBlank()) {
+            wrapper.eq(ContentPurchase::getContentType, contentType);
+        }
+        if (status != null && !status.isBlank()) {
+            wrapper.eq(ContentPurchase::getStatus, status);
+        }
+        if (userId != null) {
+            wrapper.eq(ContentPurchase::getUserId, userId);
+        }
+        wrapper.orderByDesc(ContentPurchase::getCreatedAt);
+
+        Page<ContentPurchase> purchasePage = contentPurchaseMapper.selectPage(
+            new Page<>(page, size), wrapper);
+
+        return purchasePage.convert(this::toRecordResponse);
+    }
+
+    private ContentPurchaseRecordResponse toRecordResponse(ContentPurchase purchase) {
+        User user = userMapper.selectById(purchase.getUserId());
+        String contentTitle = getContentTitle(purchase.getContentType(), purchase.getContentId());
+
+        return ContentPurchaseRecordResponse.builder()
+            .id(purchase.getId())
+            .userId(purchase.getUserId())
+            .userNickname(user != null ? user.getNickname() : null)
+            .userPhone(user != null ? user.getPhone() : null)
+            .contentType(purchase.getContentType())
+            .contentId(purchase.getContentId())
+            .contentTitle(contentTitle)
+            .price(purchase.getPrice())
+            .paymentMethod(purchase.getPaymentMethod())
+            .status(purchase.getStatus())
+            .orderNo(purchase.getOrderNo())
+            .paymentNo(purchase.getPaymentNo())
+            .paymentTime(purchase.getPaymentTime())
+            .createdAt(purchase.getCreatedAt())
+            .build();
+    }
+
+    private String getContentTitle(String contentType, Long contentId) {
+        if ("article".equals(contentType)) {
+            HelpArticle article = helpArticleMapper.selectById(contentId);
+            return article != null ? article.getTitle() : null;
+        }
+        Video video = videoMapper.selectById(contentId);
+        return video != null ? video.getTitle() : null;
+    }
+
+    @Override
+    public ContentAnalyticsResponse getAnalytics() {
+        // Total revenue and purchases
+        LambdaQueryWrapper<ContentPurchase> paidWrapper = new LambdaQueryWrapper<ContentPurchase>()
+            .eq(ContentPurchase::getStatus, "paid");
+        List<ContentPurchase> paidPurchases = contentPurchaseMapper.selectList(paidWrapper);
+
+        BigDecimal totalRevenue = paidPurchases.stream()
+            .map(ContentPurchase::getPrice)
+            .filter(p -> p != null)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        int totalPurchases = paidPurchases.size();
+        long totalUsers = paidPurchases.stream()
+            .map(ContentPurchase::getUserId)
+            .distinct()
+            .count();
+
+        // Revenue by type
+        Map<String, BigDecimal> revenueByType = paidPurchases.stream()
+            .collect(Collectors.groupingBy(
+                ContentPurchase::getContentType,
+                Collectors.reducing(BigDecimal.ZERO,
+                    p -> p.getPrice() != null ? p.getPrice() : BigDecimal.ZERO,
+                    BigDecimal::add)
+            ));
+        Map<String, Integer> purchasesByType = paidPurchases.stream()
+            .collect(Collectors.groupingBy(
+                ContentPurchase::getContentType,
+                Collectors.collectingAndThen(Collectors.counting(), Long::intValue)
+            ));
+
+        // Top content
+        Map<String, List<ContentPurchase>> byContent = paidPurchases.stream()
+            .collect(Collectors.groupingBy(p -> p.getContentType() + ":" + p.getContentId()));
+        List<ContentAnalyticsResponse.TopContent> topContent = byContent.entrySet().stream()
+            .sorted((a, b) -> b.getValue().size() - a.getValue().size())
+            .limit(10)
+            .map(entry -> {
+                String[] parts = entry.getKey().split(":");
+                String type = parts[0];
+                Long id = Long.parseLong(parts[1]);
+                return ContentAnalyticsResponse.TopContent.builder()
+                    .contentType(type)
+                    .contentId(id)
+                    .title(getContentTitle(type, id))
+                    .purchaseCount(entry.getValue().size())
+                    .revenue(entry.getValue().stream()
+                        .map(ContentPurchase::getPrice)
+                        .filter(p -> p != null)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add))
+                    .build();
+            })
+            .collect(Collectors.toList());
+
+        // Daily stats (last 30 days)
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        List<ContentPurchase> recentPurchases = paidPurchases.stream()
+            .filter(p -> p.getPaymentTime() != null && p.getPaymentTime().isAfter(thirtyDaysAgo))
+            .collect(Collectors.toList());
+        Map<LocalDate, List<ContentPurchase>> byDate = recentPurchases.stream()
+            .filter(p -> p.getPaymentTime() != null)
+            .collect(Collectors.groupingBy(p -> p.getPaymentTime().toLocalDate()));
+        List<ContentAnalyticsResponse.DailyStats> dailyStats = byDate.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .map(entry -> ContentAnalyticsResponse.DailyStats.builder()
+                .date(entry.getKey().toString())
+                .purchaseCount(entry.getValue().size())
+                .revenue(entry.getValue().stream()
+                    .map(ContentPurchase::getPrice)
+                    .filter(p -> p != null)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add))
+                .build())
+            .collect(Collectors.toList());
+
+        return ContentAnalyticsResponse.builder()
+            .totalRevenue(totalRevenue)
+            .totalPurchases(totalPurchases)
+            .totalUsers((int) totalUsers)
+            .revenueByType(revenueByType)
+            .purchasesByType(purchasesByType)
+            .topContent(topContent)
+            .dailyStats(dailyStats)
+            .build();
     }
 }
