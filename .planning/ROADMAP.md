@@ -19,6 +19,7 @@
 - [ ] **Phase 3: Orders & Payment** - Checkout flow, WeChat Pay integration, order management, financial basics
 - [ ] **Phase 4: Content & Engagement** - Banners, announcements, videos, points system, gift zone
 - [ ] **Phase 5: Operations & Polish** - System management, financial reports, deployment and optimization
+- [ ] **Phase 6: Content Payment & Monetization** - Real payment integration, content search, categories, engagement, purchase management and analytics
 
 ---
 
@@ -138,6 +139,38 @@ Plans:
 
 ---
 
+### Phase 6: Content Payment & Monetization
+
+**Goal:** Users can purchase paid content with real payment methods, admins can manage content purchases and analytics, and the content center supports search, categories, engagement, and preview
+
+**Depends on:** Phase 4
+
+**Requirements:** CPAY-01, CPAY-02, CPAY-03, CPAY-04, CPAY-05, CPAY-06, CPAY-07
+
+**Success Criteria** (what must be TRUE):
+1. User can purchase paid content via real WeChat Pay integration
+2. User can search content by keyword and browse by dynamic categories
+3. User can like/unlike content and see engagement counts
+4. User can preview teaser content before purchasing
+5. Admin can view content purchase history with user, content, price, payment method details
+6. Admin can see content purchase analytics and revenue reports
+
+**Plans:** 8 plans
+
+Plans:
+- [ ] 06-01-PLAN.md - Database schema for content payment, categories, likes
+- [ ] 06-02-PLAN.md - Content payment flow with WeChat Pay integration
+- [ ] 06-03-PLAN.md - Content keyword search endpoint
+- [ ] 06-04-PLAN.md - Dynamic content category management (admin CRUD)
+- [ ] 06-05-PLAN.md - Content preview/teaser for unpurchased content
+- [ ] 06-06-PLAN.md - Like/unlike functionality with atomic counts
+- [ ] 06-07-PLAN.md - Admin purchase records and analytics
+- [ ] 06-08-PLAN.md - Mini Program content UI updates
+
+**UI hint:** yes
+
+---
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -147,6 +180,7 @@ Plans:
 | 3. Orders & Payment | 0/1 | Not started | - |
 | 4. Content & Engagement | 0/1 | Not started | - |
 | 5. Operations & Polish | 0/1 | Not started | - |
+| 6. Content Payment & Monetization | 8/8 | Ready to execute | - |
 
 ---
 
@@ -229,8 +263,15 @@ Plans:
 | ADM-SYS-02 | Phase 5 | Pending |
 | ADM-SYS-03 | Phase 5 | Pending |
 | ADM-SYS-04 | Phase 5 | Pending |
+| CPAY-01 | Phase 6 | Covered in 06-01, 06-02 |
+| CPAY-02 | Phase 6 | Covered in 06-07 |
+| CPAY-03 | Phase 6 | Covered in 06-03, 06-08 |
+| CPAY-04 | Phase 6 | Covered in 06-01, 06-04 |
+| CPAY-05 | Phase 6 | Covered in 06-05, 06-08 |
+| CPAY-06 | Phase 6 | Covered in 06-01, 06-06, 06-08 |
+| CPAY-07 | Phase 6 | Covered in 06-07 |
 
-**Total:** 68/68 requirements mapped
+**Total:** 75/75 requirements mapped
 
 ---
 
@@ -241,6 +282,9 @@ Phase 1 (Foundation) -> Phase 2 (Core Shopping) -> Phase 3 (Orders & Payment)
                                                            |
                                                            v
 Phase 5 (Operations) <- Phase 4 (Content & Engagement) <---+
+                                                           |
+                                                           v
+                                                   Phase 6 (Content Payment)
 ```
 
 ---
@@ -254,8 +298,9 @@ Phase 5 (Operations) <- Phase 4 (Content & Engagement) <---+
 | Phase 3 | HIGH | Payment security critical, WeChat Pay callback verification required |
 | Phase 4 | MEDIUM | Points system rules need clarification |
 | Phase 5 | LOW | Operations and deployment |
+| Phase 6 | MEDIUM | WeChat Pay integration for content, purchase idempotency, content access control |
 
 ---
 
 *Roadmap created: 2026-05-08*
-*Last updated: 2026-05-08 after phase 1 planning*
+*Last updated: 2026-05-18 after phase 6 planning*
