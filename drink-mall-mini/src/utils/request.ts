@@ -18,16 +18,16 @@ export interface ApiResponse<T = any> {
   data: T
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://hy.ajiu.lol/api/v1'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://hy.ajiu.lol/api/v1'
 let redirectingLogin = false
 
 function buildUrl(url: string, data: any, method: string) {
-  if (method !== 'GET' || !data) return BASE_URL + url
+  if (method !== 'GET' || !data) return API_BASE_URL + url
   const query = Object.keys(data)
     .filter((key) => data[key] !== undefined && data[key] !== null && data[key] !== '')
     .map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(data[key]))
     .join('&')
-  return BASE_URL + url + (query ? (url.includes('?') ? '&' : '?') + query : '')
+  return API_BASE_URL + url + (query ? (url.includes('?') ? '&' : '?') + query : '')
 }
 
 function normalizeResponse<T>(raw: any): ApiResponse<T> {

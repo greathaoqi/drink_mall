@@ -20,6 +20,12 @@
       <el-table-column prop="userId" label="用户ID" width="100" />
       <el-table-column prop="realName" label="姓名" width="120" />
       <el-table-column prop="idCardNo" label="身份证号" min-width="190" />
+      <el-table-column label="证件照片" width="170">
+        <template #default="{ row }">
+          <el-button link type="primary" :disabled="!row.frontImageUrl" @click="previewImage(row.frontImageUrl, '身份证人像面')">人像面</el-button>
+          <el-button link type="primary" :disabled="!row.backImageUrl" @click="previewImage(row.backImageUrl, '身份证国徽面')">国徽面</el-button>
+        </template>
+      </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
           <el-tag :type="row.status === 'approved' ? 'success' : row.status === 'rejected' ? 'danger' : 'warning'">
@@ -38,6 +44,10 @@
     </el-table>
     <el-pagination v-model:current-page="page" :page-size="20" layout="total, prev, pager, next" :total="total" @current-change="loadData" />
   </el-card>
+
+  <el-dialog v-model="preview.visible" :title="preview.title" width="680px">
+    <img class="id-preview" :src="preview.url" alt="身份证照片" />
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -51,6 +61,7 @@ const tableData = ref<any[]>([])
 const total = ref(0)
 const page = ref(1)
 const search = ref({ keyword: '', status: 'pending' })
+const preview = ref({ visible: false, title: '', url: '' })
 
 const statusText = (status: string) => ({ pending: '待审核', approved: '已通过', rejected: '已拒绝' }[status] || status || '-')
 
@@ -76,9 +87,25 @@ const review = async (row: any, approved: boolean) => {
   loadData()
 }
 
+const previewImage = (url: string, title: string) => {
+  if (!url) return
+  preview.value = {
+    visible: true,
+    title,
+    url
+  }
+}
+
 onMounted(loadData)
 </script>
 
 <style scoped>
 .mb12 { margin-bottom: 12px; }
+.id-preview {
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #f7f3ea;
+}
 </style>

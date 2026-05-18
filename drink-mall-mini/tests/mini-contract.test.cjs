@@ -92,3 +92,22 @@ test('account flow page exposes design states and mandatory invite binding contr
   assert.match(login, /parseReferralOptions/)
   assert.match(login, /agreed/)
 })
+
+test('real-name page validates ID card and uploads both ID images before submit', () => {
+  const page = read('src/pages/auth/realname/index.vue')
+  const service = read('src/services/user.ts')
+
+  assert.match(page, /isValidChineseIdCard/)
+  assert.match(page, /idCardNo/)
+  assert.match(page, /frontImageUrl/)
+  assert.match(page, /backImageUrl/)
+  assert.match(page, /chooseIdImage\('front'\)/)
+  assert.match(page, /chooseIdImage\('back'\)/)
+  assert.match(page, /userApi\.uploadImage/)
+  assert.match(page, /userApi\.submitRealName\(\{\s*realName:/)
+  assert.doesNotMatch(page, /submitRealName\(form\.value\)/)
+
+  assert.match(service, /uploadImage:\s*\(filePath: string\)/)
+  assert.match(service, /uni\.uploadFile/)
+  assert.match(service, /\/upload\/image/)
+})

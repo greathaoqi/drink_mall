@@ -55,6 +55,8 @@ services:
       REDIS_PASSWORD: ""
     ports:
       - "0.0.0.0:18080:8080"
+    volumes:
+      - ./uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy

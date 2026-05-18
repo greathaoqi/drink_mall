@@ -13,21 +13,36 @@
       </view>
       <view class="field">
         <text>身份证号</text>
-        <input v-model.trim="form.idCard" placeholder="请输入 18 位身份证号码" />
+        <input
+          v-model.trim="form.idCardNo"
+          maxlength="18"
+          type="idcard"
+          placeholder="请输入 18 位身份证号码"
+          @blur="validateIdCard"
+        />
+        <text v-if="idCardError" class="field-error">{{ idCardError }}</text>
       </view>
 
       <view class="upload-section">
         <text class="section-title">身份证照片</text>
         <view class="upload-grid">
-          <view class="upload-box">
-            <text class="upload-icon">人</text>
-            <text>人像面</text>
-            <text class="upload-sub">上传身份证人像面</text>
+          <view class="upload-box" :class="{ filled: !!frontPreview }" @click="chooseIdImage('front')">
+            <image v-if="frontPreview" class="id-preview" :src="frontPreview" mode="aspectFill" />
+            <template v-else>
+              <text class="upload-icon">人</text>
+              <text>人像面</text>
+              <text class="upload-sub">上传身份证人像面</text>
+            </template>
+            <view v-if="uploadingSide === 'front'" class="upload-mask">上传中...</view>
           </view>
-          <view class="upload-box">
-            <text class="upload-icon">徽</text>
-            <text>国徽面</text>
-            <text class="upload-sub">上传身份证国徽面</text>
+          <view class="upload-box" :class="{ filled: !!backPreview }" @click="chooseIdImage('back')">
+            <image v-if="backPreview" class="id-preview" :src="backPreview" mode="aspectFill" />
+            <template v-else>
+              <text class="upload-icon">徽</text>
+              <text>国徽面</text>
+              <text class="upload-sub">上传身份证国徽面</text>
+            </template>
+            <view v-if="uploadingSide === 'back'" class="upload-mask">上传中...</view>
           </view>
         </view>
       </view>
@@ -48,22 +63,99 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { userApi } from '@/services/user'
 import { useUserStore } from '@/store/user'
 import { requirePageLogin } from '@/utils/auth'
 
+type IdImageSide = 'front' | 'back'
+
 const loading = ref(false)
 const agreed = ref(true)
-const form = ref({ realName: '', idCard: '' })
+const uploadingSide = ref<IdImageSide | ''>('')
+const idCardError = ref('')
+const form = ref({
+  realName: '',
+  idCardNo: '',
+  frontImageUrl: '',
+  backImageUrl: '',
+  frontLocalPath: '',
+  backLocalPath: ''
+})
+
+const frontPreview = computed(() => form.value.frontLocalPath || form.value.frontImageUrl)
+const backPreview = computed(() => form.value.backLocalPath || form.value.backImageUrl)
 
 onLoad(() => requirePageLogin())
 
+function isValidChineseIdCard(value: string) {
+  const id = value.trim().toUpperCase()
+  if (!/^\d{17}[\dX]$/.test(id)) return false
+
+  const birth = id.slice(6, 14)
+  const year = Number(birth.slice(0, 4))
+  const month = Number(birth.slice(4, 6))
+  const day = Number(birth.slice(6, 8))
+  const date = new Date(year, month - 1, day)
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return false
+  }
+
+  const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2]
+  const checks = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2']
+  const sum = weights.reduce((total, weight, index) => total + Number(id[index]) * weight, 0)
+  return checks[sum % 11] === id[17]
+}
+
+function validateIdCard() {
+  form.value.idCardNo = form.value.idCardNo.trim().toUpperCase()
+  idCardError.value = form.value.idCardNo && !isValidChineseIdCard(form.value.idCardNo)
+    ? '请输入有效的18位身份证号码'
+    : ''
+  return !idCardError.value
+}
+
+function chooseIdImage(side: IdImageSide) {
+  if (uploadingSide.value) return
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: async (res) => {
+      const filePath = res.tempFilePaths?.[0]
+      if (!filePath) return
+      uploadingSide.value = side
+      try {
+        const uploaded = await userApi.uploadImage(filePath)
+        if (side === 'front') {
+          form.value.frontLocalPath = filePath
+          form.value.frontImageUrl = uploaded.url
+        } else {
+          form.value.backLocalPath = filePath
+          form.value.backImageUrl = uploaded.url
+        }
+      } catch (error: any) {
+        uni.showToast({ title: error.message || '图片上传失败', icon: 'none' })
+      } finally {
+        uploadingSide.value = ''
+      }
+    }
+  })
+}
+
 async function submit() {
   if (!requirePageLogin()) return
-  if (!form.value.realName || !form.value.idCard) {
+  if (!form.value.realName || !form.value.idCardNo) {
     uni.showToast({ title: '请填写实名信息', icon: 'none' })
+    return
+  }
+  if (!validateIdCard()) {
+    uni.showToast({ title: idCardError.value, icon: 'none' })
+    return
+  }
+  if (!form.value.frontImageUrl || !form.value.backImageUrl) {
+    uni.showToast({ title: '请上传身份证正反面照片', icon: 'none' })
     return
   }
   if (!agreed.value) {
@@ -72,7 +164,12 @@ async function submit() {
   }
   loading.value = true
   try {
-    await userApi.submitRealName(form.value)
+    await userApi.submitRealName({
+      realName: form.value.realName,
+      idCardNo: form.value.idCardNo,
+      frontImageUrl: form.value.frontImageUrl,
+      backImageUrl: form.value.backImageUrl
+    })
     useUserStore().patchUser({ realNameStatus: 'PENDING' })
     uni.showToast({ title: '已提交审核', icon: 'success' })
     setTimeout(() => uni.navigateBack(), 500)
@@ -152,6 +249,13 @@ async function submit() {
   background: var(--dm-cream-100);
 }
 
+.field-error {
+  margin-top: 10rpx;
+  color: #D84315;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
 .upload-section {
   margin-top: 26rpx;
 }
@@ -163,6 +267,7 @@ async function submit() {
 }
 
 .upload-box {
+  position: relative;
   aspect-ratio: 5 / 3;
   border: 2rpx dashed #F0BC4A;
   border-radius: var(--dm-radius-md);
@@ -174,6 +279,28 @@ async function submit() {
   background: linear-gradient(135deg, #FBF2DC, #F6E5BC);
   font-size: 24rpx;
   font-weight: 700;
+  overflow: hidden;
+}
+
+.upload-box.filled {
+  border-style: solid;
+  background: var(--dm-cream-100);
+}
+
+.id-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.upload-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  background: rgba(31, 9, 0, 0.58);
+  font-size: 24rpx;
 }
 
 .upload-icon {
