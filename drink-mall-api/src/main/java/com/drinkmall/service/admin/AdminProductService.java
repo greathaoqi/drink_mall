@@ -12,9 +12,9 @@ public interface AdminProductService {
     Product createProduct(Product product);
     Product updateProduct(Product product);
     void deleteProduct(Long productId);
-    void updateStatus(Long productId, Integer status);
+    void updateStatus(Long productId, Integer status, String reason);
     void updateZone(Long productId, String zoneType, String investmentLevelCode, Integer giftPointsPrice);
-    void updatePaymentMethods(Long productId, String allowedPaymentMethods, Boolean wineBeanPayable);
+    void updatePaymentMethods(Long productId, String allowedPaymentMethods, Boolean wineBeanPayable, String reason);
     void adjustStock(Long productId, Integer quantity, String reason);
     Page<StockLog> getStockLogs(Long productId, Integer page, Integer size);
     List<Category> getCategories();

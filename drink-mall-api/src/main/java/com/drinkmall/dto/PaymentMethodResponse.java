@@ -50,6 +50,9 @@ public class PaymentMethodResponse {
         if (PaymentMethod.BALANCE.getCode().equals(code)) {
             return "余额支付";
         }
+        if ("df".equals(code)) {
+            return "DF支付";
+        }
         if (PaymentMethod.WINE_BEAN.getCode().equals(code)) {
             return "酒豆支付";
         }

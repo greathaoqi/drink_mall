@@ -53,14 +53,14 @@ class AdminSystemServiceImplTest {
         config.setConfigValue("10");
         when(sysConfigMapper.selectOne(any())).thenReturn(config);
 
-        adminSystemService.updateConfig("withdraw.min_amount", "20");
+        adminSystemService.updateConfig("withdraw.min_amount", "20", "finance rule adjustment");
 
         ArgumentCaptor<OperationLog> log = ArgumentCaptor.forClass(OperationLog.class);
         verify(operationLogMapper).insert(log.capture());
         assertThat(log.getValue().getModule()).isEqualTo("config");
         assertThat(log.getValue().getAction()).isEqualTo("update");
         assertThat(log.getValue().getTargetId()).isEqualTo("2");
-        assertThat(log.getValue().getDetail()).contains("10 -> 20");
+        assertThat(log.getValue().getDetail()).contains("10 -> 20").contains("finance rule adjustment");
     }
 
     private void assertOperationLogged(String module, String action, String targetId) {

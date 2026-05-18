@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.drinkmall.dto.AdminReferralNodeResponse;
 import com.drinkmall.common.Result;
 import com.drinkmall.dto.InvitationCodeCreateRequest;
 import com.drinkmall.dto.RegisterUserRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -50,6 +52,14 @@ public class AdminUserController {
         return Result.success(adminUserService.getUserDetail(userId));
     }
 
+    @GetMapping("/{userId}/referral-audit")
+    public Result<List<AdminReferralNodeResponse>> getReferralAuditTree(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "20") Integer maxDepth
+    ) {
+        return Result.success(adminUserService.getReferralAuditTree(currentAdminId(), userId, maxDepth));
+    }
+
     @GetMapping("/export")
     public void exportUsers(HttpServletResponse response, @RequestParam(required = false) String keyword) {
         adminUserService.exportUsers(response, keyword);
@@ -66,7 +76,7 @@ public class AdminUserController {
                 "admin_seed",
                 true
         );
-        writeLog(adminId, "user", "create_seed", String.valueOf(user.getId()), "openid=" + user.getOpenid());
+        writeLog(adminId, "user", "create_seed", String.valueOf(user.getId()), "openid=" + user.getOpenid() + ", reason=" + request.getReason());
         return Result.success(user);
     }
 
@@ -74,7 +84,7 @@ public class AdminUserController {
     public Result<InvitationCode> createInvitationCode(@Valid @RequestBody InvitationCodeCreateRequest request) {
         Long adminId = currentAdminId();
         InvitationCode code = phaseOneCoreService.createInvitationCode(request.getOwnerUserId(), adminId, request.getSource());
-        writeLog(adminId, "invite_code", "create", String.valueOf(code.getId()), "code=" + code.getCode() + ", ownerUserId=" + code.getOwnerUserId());
+        writeLog(adminId, "invite_code", "create", String.valueOf(code.getId()), "code=" + code.getCode() + ", ownerUserId=" + code.getOwnerUserId() + ", reason=" + request.getReason());
         return Result.success(code);
     }
 

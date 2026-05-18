@@ -15,7 +15,10 @@
     { "path": "pages/auth/realname/index", "style": { "navigationBarTitleText": "实名认证" } },
     { "path": "pages/order/list/index", "style": { "navigationBarTitleText": "我的订单" } },
     { "path": "pages/order/detail/index", "style": { "navigationBarTitleText": "订单详情" } },
+    { "path": "pages/order/logistics/index", "style": { "navigationBarTitleText": "物流详情" } },
+    { "path": "pages/payment/result/index", "style": { "navigationBarTitleText": "支付结果" } },
     { "path": "pages/aftersale/index", "style": { "navigationBarTitleText": "售后申请" } },
+    { "path": "pages/aftersale/detail/index", "style": { "navigationBarTitleText": "售后详情" } },
     { "path": "pages/address/list/index", "style": { "navigationBarTitleText": "收货地址" } },
     { "path": "pages/address/edit/index", "style": { "navigationBarTitleText": "编辑地址" } },
     { "path": "pages/wallet/index", "style": { "navigationBarTitleText": "我的资产" } },
@@ -30,8 +33,8 @@
     { "path": "pages/help/index", "style": { "navigationBarTitleText": "帮助中心" } }
   ],
   "tabBar": {
-    "color": "#7A7168",
-    "selectedColor": "#B97700",
+    "color": "#9B8E7C",
+    "selectedColor": "#D38A00",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
@@ -45,7 +48,7 @@
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "酒水分销商城",
     "navigationBarBackgroundColor": "#FFFFFF",
-    "backgroundColor": "#F6F1E8"
+    "backgroundColor": "#F7F3EA"
   },
   "easycom": {
     "autoscan": true,

@@ -65,8 +65,11 @@ public class AdminSystemController {
     }
 
     @PutMapping("/configs/{configKey}")
-    public Result<Void> updateConfig(@PathVariable String configKey, @RequestParam String configValue) {
-        adminSystemService.updateConfig(configKey, configValue);
+    public Result<Void> updateConfig(
+            @PathVariable String configKey,
+            @RequestParam String configValue,
+            @RequestParam String reason) {
+        adminSystemService.updateConfig(configKey, configValue, reason);
         return Result.success(null);
     }
 

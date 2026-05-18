@@ -11,4 +11,5 @@ public class RegisterUserRequest {
     private Long inviterId;
     private String inviteCode;
     private String registerSource;
+    private String reason;
 }

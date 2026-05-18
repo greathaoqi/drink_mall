@@ -42,14 +42,21 @@ public class AdminOrderController {
     }
 
     @PutMapping("/{orderId}/ship")
-    public Result<Void> shipOrder(@PathVariable Long orderId, @RequestParam String logisticsCompany, @RequestParam String logisticsNo) {
-        adminOrderService.shipOrder(orderId, logisticsCompany, logisticsNo);
+    public Result<Void> shipOrder(
+            @PathVariable Long orderId,
+            @RequestParam String logisticsCompany,
+            @RequestParam String logisticsNo,
+            @RequestParam String reason) {
+        adminOrderService.shipOrder(orderId, logisticsCompany, logisticsNo, reason);
         return Result.success(null);
     }
 
     @PutMapping("/{orderId}/offline-confirm")
-    public Result<Void> confirmOfflineTransfer(@PathVariable Long orderId, @RequestParam String paymentNo) {
-        adminOrderService.confirmOfflineTransfer(orderId, StpUtil.getLoginIdAsLong(), paymentNo);
+    public Result<Void> confirmOfflineTransfer(
+            @PathVariable Long orderId,
+            @RequestParam String paymentNo,
+            @RequestParam String reason) {
+        adminOrderService.confirmOfflineTransfer(orderId, StpUtil.getLoginIdAsLong(), paymentNo, reason);
         return Result.success(null);
     }
 
@@ -60,8 +67,8 @@ public class AdminOrderController {
     }
 
     @PutMapping("/{orderId}/complete")
-    public Result<Void> completeOrder(@PathVariable Long orderId) {
-        adminOrderService.completeOrder(orderId);
+    public Result<Void> completeOrder(@PathVariable Long orderId, @RequestParam String reason) {
+        adminOrderService.completeOrder(orderId, reason);
         return Result.success(null);
     }
 

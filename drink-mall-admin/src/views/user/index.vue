@@ -11,7 +11,7 @@
         </el-col>
         <el-col :span="8">
           <el-button type="primary" :loading="loading" @click="loadData">查询</el-button>
-          <el-button @click="openSeed">创建种子账号</el-button>
+          <el-button v-if="can('user:write')" @click="openSeed">创建种子账号</el-button>
           <el-button @click="handleExport">导出</el-button>
         </el-col>
       </el-row>
@@ -27,9 +27,9 @@
       <el-table-column prop="level" label="等级" width="120" />
       <el-table-column prop="inviterId" label="推荐人ID" width="110" />
       <el-table-column prop="totalConsumption" label="消费金额" width="120">
-        <template #default="{ row }">¥{{ row.totalConsumption || 0 }}</template>
+        <template #default="{ row }">￥{{ row.totalConsumption || 0 }}</template>
       </el-table-column>
-      <el-table-column prop="balance" label="余额" width="110"><template #default="{ row }">¥{{ row.balance || 0 }}</template></el-table-column>
+      <el-table-column prop="balance" label="余额" width="110"><template #default="{ row }">￥{{ row.balance || 0 }}</template></el-table-column>
       <el-table-column prop="points" label="积分" width="90" />
       <el-table-column prop="ageVerified" label="年龄认证" width="100">
         <template #default="{ row }"><el-tag :type="row.ageVerified ? 'success' : 'info'">{{ row.ageVerified ? '已认证' : '未认证' }}</el-tag></template>
@@ -46,6 +46,7 @@
       <el-form :model="seedForm" label-width="100px" class="dialog-form">
         <el-form-item label="OpenID" required><el-input v-model="seedForm.openid" /></el-form-item>
         <el-form-item label="UnionID"><el-input v-model="seedForm.unionid" /></el-form-item>
+        <el-form-item label="创建原因" required><el-input v-model="seedForm.reason" type="textarea" :rows="3" /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="seedDialogVisible = false">取消</el-button>
@@ -57,8 +58,9 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
+import { can, confirmCritical, requireText } from '@/utils/adminAction'
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -67,7 +69,7 @@ const page = ref(1)
 const total = ref(0)
 const search = ref<{ keyword: string; ageVerified?: number }>({ keyword: '', ageVerified: undefined })
 const seedDialogVisible = ref(false)
-const seedForm = ref({ openid: '', unionid: '' })
+const seedForm = ref({ openid: '', unionid: '', reason: '' })
 
 const loadData = async () => {
   loading.value = true
@@ -81,16 +83,13 @@ const loadData = async () => {
 }
 
 const openSeed = () => {
-  seedForm.value = { openid: '', unionid: '' }
+  seedForm.value = { openid: '', unionid: '', reason: '' }
   seedDialogVisible.value = true
 }
 
 const submitSeed = async () => {
-  if (!seedForm.value.openid) {
-    ElMessage.warning('OpenID 必填')
-    return
-  }
-  await ElMessageBox.confirm('确认创建后台种子账号？普通用户注册仍必须绑定上级。', '二次确认', { type: 'warning' })
+  if (!requireText(seedForm.value.openid, 'OpenID') || !requireText(seedForm.value.reason, '创建原因')) return
+  await confirmCritical('确认创建后台种子账号？普通用户注册仍必须绑定上级。', '二次确认')
   submitting.value = true
   try {
     await request.post('/api/v1/admin/user/seed-accounts', seedForm.value)

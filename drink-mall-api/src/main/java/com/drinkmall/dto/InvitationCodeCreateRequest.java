@@ -8,4 +8,5 @@ public class InvitationCodeCreateRequest {
     @NotNull(message = "归属用户不能为空")
     private Long ownerUserId;
     private String source;
+    private String reason;
 }

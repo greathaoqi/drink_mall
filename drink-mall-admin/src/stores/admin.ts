@@ -16,10 +16,17 @@ const rolePermissions: Record<string, string[]> = {
   operator: [
     'dashboard:view',
     'user:view',
+    'user:write',
+    'user:invite',
+    'real-name:review',
     'product:view',
+    'product:write',
     'order:view',
+    'order:write',
     'aftersale:view',
+    'aftersale:write',
     'content:view',
+    'content:write',
     'operation:log:view'
   ],
   finance: [

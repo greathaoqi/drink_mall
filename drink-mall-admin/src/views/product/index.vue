@@ -37,19 +37,56 @@
       </el-table-column>
       <el-table-column label="操作" width="180" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="$router.push(`/product/edit/${row.id}`)">编辑</el-button>
-          <el-button link :type="row.status === 1 ? 'warning' : 'success'" @click="toggleStatus(row)">{{ row.status === 1 ? '下架' : '上架' }}</el-button>
+          <el-button link type="primary" v-if="can('product:write')" @click="$router.push(`/product/edit/${row.id}`)">编辑</el-button>
+          <el-button link type="primary" v-if="can('product:write')" @click="openPayment(row)">支付</el-button>
+          <el-button link type="warning" v-if="can('product:write')" @click="openStock(row)">库存</el-button>
+          <el-button link :type="row.status === 1 ? 'warning' : 'success'" v-if="can('product:write')" @click="toggleStatus(row)">{{ row.status === 1 ? '下架' : '上架' }}</el-button>
         </template>
       </el-table-column>
     </el-table>
     <el-pagination v-model:current-page="page" :page-size="20" layout="total, prev, pager, next" :total="total" @current-change="loadData" />
+
+    <el-dialog v-model="stockDialogVisible" title="库存调整" width="460px">
+      <el-alert title="请输入正数增加库存，负数减少库存；原因会写入库存流水和操作日志。" type="warning" show-icon :closable="false" />
+      <el-form :model="stockForm" label-width="96px" class="dialog-form">
+        <el-form-item label="商品"><span>{{ currentProduct?.name }}</span></el-form-item>
+        <el-form-item label="调整数量" required><el-input-number v-model="stockForm.quantity" :step="1" /></el-form-item>
+        <el-form-item label="调整原因" required><el-input v-model="stockForm.reason" type="textarea" :rows="3" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="stockDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitStock">确认调整</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="paymentDialogVisible" title="商品支付方式" width="500px">
+      <el-form :model="paymentForm" label-width="116px">
+        <el-form-item label="商品"><span>{{ currentProduct?.name }}</span></el-form-item>
+        <el-form-item label="支持支付方式" required>
+          <el-checkbox-group v-model="paymentForm.methods">
+            <el-checkbox label="online">微信/线上</el-checkbox>
+            <el-checkbox label="balance">余额</el-checkbox>
+            <el-checkbox label="offline_corporate">线下对公</el-checkbox>
+            <el-checkbox label="points">积分</el-checkbox>
+            <el-checkbox label="wine_bean">酒豆</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        <el-form-item label="酒豆支付"><el-switch v-model="paymentForm.wineBeanPayable" /></el-form-item>
+        <el-form-item label="调整原因" required><el-input v-model="paymentForm.reason" type="textarea" :rows="3" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="paymentDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitPayment">保存</el-button>
+      </template>
+    </el-dialog>
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
+import { can, confirmCritical, promptReason, requireText } from '@/utils/adminAction'
 
 const loading = ref(false)
 const tableData = ref<any[]>([])
@@ -57,6 +94,11 @@ const categories = ref<any[]>([])
 const page = ref(1)
 const total = ref(0)
 const search = ref({ keyword: '', categoryId: '', zoneType: '' })
+const currentProduct = ref<any>(null)
+const stockDialogVisible = ref(false)
+const stockForm = ref({ quantity: 0, reason: '' })
+const paymentDialogVisible = ref(false)
+const paymentForm = ref({ methods: [] as string[], wineBeanPayable: false, reason: '' })
 
 const zoneText = (zone: string) => ({ main: '主产品', investment: '招商', retail: '零售', gift: '礼包' }[zone] || zone || '-')
 const zoneType = (zone: string) => ({ main: 'primary', investment: 'danger', retail: 'success', gift: 'warning' }[zone] || 'info')
@@ -78,9 +120,59 @@ const loadCategories = async () => {
 }
 
 const toggleStatus = async (row: any) => {
-  await ElMessageBox.confirm(`确认${row.status === 1 ? '下架' : '上架'}该商品？`, '商品状态确认', { type: 'warning' })
-  await request.put(`/api/v1/admin/product/${row.id}/status`, null, { params: { status: row.status === 1 ? 0 : 1 } })
+  const reason = await promptReason('商品状态确认', `请输入${row.status === 1 ? '下架' : '上架'}原因`)
+  await confirmCritical(`确认${row.status === 1 ? '下架' : '上架'}该商品？`, '商品状态确认')
+  await request.put(`/api/v1/admin/product/${row.id}/status`, null, { params: { status: row.status === 1 ? 0 : 1, reason } })
   ElMessage.success('商品状态已更新')
+  loadData()
+}
+
+const openStock = (row: any) => {
+  currentProduct.value = row
+  stockForm.value = { quantity: 0, reason: '' }
+  stockDialogVisible.value = true
+}
+
+const submitStock = async () => {
+  if (!currentProduct.value || !stockForm.value.quantity) {
+    ElMessage.warning('调整数量不能为 0')
+    return
+  }
+  if (!requireText(stockForm.value.reason, '调整原因')) return
+  await confirmCritical(`确认调整商品 ${currentProduct.value.name} 库存 ${stockForm.value.quantity}？`, '库存调整确认')
+  await request.put(`/api/v1/admin/product/${currentProduct.value.id}/stock`, null, { params: stockForm.value })
+  ElMessage.success('库存已调整')
+  stockDialogVisible.value = false
+  loadData()
+}
+
+const openPayment = (row: any) => {
+  currentProduct.value = row
+  paymentForm.value = {
+    methods: String(row.allowedPaymentMethods || '').split(',').filter(Boolean),
+    wineBeanPayable: Boolean(row.wineBeanPayable),
+    reason: ''
+  }
+  paymentDialogVisible.value = true
+}
+
+const submitPayment = async () => {
+  if (!currentProduct.value) return
+  if (!paymentForm.value.methods.length) {
+    ElMessage.warning('至少选择一种支付方式')
+    return
+  }
+  if (!requireText(paymentForm.value.reason, '调整原因')) return
+  await confirmCritical('确认修改该商品可用支付方式？', '支付方式确认')
+  await request.put(`/api/v1/admin/product/${currentProduct.value.id}/payment-methods`, null, {
+    params: {
+      allowedPaymentMethods: paymentForm.value.methods.join(','),
+      wineBeanPayable: paymentForm.value.wineBeanPayable,
+      reason: paymentForm.value.reason
+    }
+  })
+  ElMessage.success('商品支付方式已更新')
+  paymentDialogVisible.value = false
   loadData()
 }
 
@@ -94,4 +186,5 @@ onMounted(() => {
 .w180 { width: 180px; margin-right: 8px; }
 .w150 { width: 150px; margin-right: 8px; }
 .right { text-align: right; }
+.dialog-form { margin-top: 16px; }
 </style>

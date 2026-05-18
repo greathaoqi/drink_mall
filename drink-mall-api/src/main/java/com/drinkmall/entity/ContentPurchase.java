@@ -17,6 +17,7 @@ public class ContentPurchase {
     private String contentType;
     private Long contentId;
     private BigDecimal price;
+    private String paymentMethod;
     private String idempotencyKey;
     private LocalDateTime createdAt;
 }

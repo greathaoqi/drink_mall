@@ -30,4 +30,19 @@ public interface UserMapper extends BaseMapper<User> {
             SELECT COUNT(*) FROM team
             """)
     Long countTeamMembers(Long userId);
+
+    @Select("""
+            WITH RECURSIVE team AS (
+                SELECT u.*, 1 AS referral_depth
+                FROM users u
+                WHERE u.inviter_id = #{userId}
+                UNION ALL
+                SELECT child.*, team.referral_depth + 1 AS referral_depth
+                FROM users child
+                JOIN team ON child.inviter_id = team.id
+                WHERE team.referral_depth < #{maxDepth}
+            )
+            SELECT * FROM team ORDER BY referral_depth ASC, created_at DESC
+            """)
+    List<User> selectReferralDescendants(Long userId, Integer maxDepth);
 }

@@ -8,6 +8,22 @@ export function requireLogin(message = '请先登录') {
   return false
 }
 
+export function requirePageLogin(message = '请先登录后继续') {
+  const store = useUserStore()
+  if (store.isLoggedIn) return true
+  uni.showToast({ title: message, icon: 'none' })
+  setTimeout(() => uni.redirectTo({ url: '/pages/login/index' }), 250)
+  return false
+}
+
+export function requireRealName(message = '请先完成实名认证') {
+  const store = useUserStore()
+  if (store.realNameApproved) return true
+  uni.showToast({ title: message, icon: 'none' })
+  setTimeout(() => uni.navigateTo({ url: '/pages/auth/realname/index' }), 250)
+  return false
+}
+
 export function realNameLabel(status?: string) {
   const map: Record<string, string> = { APPROVED: '已实名', PENDING: '审核中', REJECTED: '未通过', UNSUBMITTED: '未实名' }
   return map[status || 'UNSUBMITTED'] || '未实名'

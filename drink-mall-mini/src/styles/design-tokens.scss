@@ -1,0 +1,126 @@
+:root,
+page {
+  --dm-brown-900: #1F0900;
+  --dm-brown-800: #2A0E00;
+  --dm-brown-700: #351300;
+  --dm-brown-600: #4A1E08;
+  --dm-brown-50: #FFF8EE;
+
+  --dm-gold-600: #B07000;
+  --dm-gold-500: #D38A00;
+  --dm-gold-400: #E4A516;
+  --dm-gold-300: #F0BC4A;
+  --dm-gold-200: #FFD646;
+  --dm-gold-100: #FBE9B6;
+  --dm-gold-50: #FFF6DA;
+
+  --dm-cream-200: #F2EBD9;
+  --dm-cream-100: #F8F4EC;
+  --dm-cream-50: #FCFAF3;
+  --dm-bg-app: #F7F3EA;
+  --dm-bg-card: #FFFFFF;
+  --dm-line: #ECE5D6;
+  --dm-line-soft: #F0EADC;
+
+  --dm-text-1: #1A1006;
+  --dm-text-2: #5E5142;
+  --dm-text-3: #9B8E7C;
+  --dm-text-on-brown: #F6E7C2;
+  --dm-text-on-brown-soft: rgba(246, 231, 194, 0.6);
+
+  --dm-green-wechat: #12B95B;
+  --dm-blue-500: #3A6FD1;
+  --dm-pink-500: #D1467A;
+  --dm-green-500: #2F9E5C;
+  --dm-red-500: #D6453B;
+
+  --dm-grad-brown: linear-gradient(180deg, #2A0E00 0%, #3B1900 60%, #421E04 100%);
+  --dm-grad-gold: linear-gradient(135deg, #FFD646 0%, #E4A516 50%, #B07000 100%);
+  --dm-grad-gold-soft: linear-gradient(135deg, #FBE9B6, #F0BC4A);
+  --dm-grad-card-cream: linear-gradient(180deg, #FFFAEB, #FFF1D2);
+
+  --dm-radius-xs: 6rpx;
+  --dm-radius-sm: 8rpx;
+  --dm-radius-md: 12rpx;
+  --dm-radius-lg: 16rpx;
+  --dm-radius-xl: 22rpx;
+  --dm-radius-pill: 999rpx;
+
+  --dm-shadow-card: 0 4rpx 20rpx rgba(40, 20, 0, 0.06);
+  --dm-shadow-pop: 0 24rpx 80rpx rgba(30, 15, 0, 0.18);
+  --dm-shadow-action: 0 -8rpx 28rpx rgba(40, 20, 0, 0.08);
+
+  --dm-safe-bottom: env(safe-area-inset-bottom);
+  --dm-status-h: 44px;
+  --dm-nav-h: 44px;
+  --dm-tabbar-h: 64px;
+  --dm-page-x: 32rpx;
+}
+
+.dm-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: var(--dm-bg-app);
+  color: var(--dm-text-1);
+  font-size: 28rpx;
+  line-height: 1.45;
+  padding-bottom: calc(24rpx + var(--dm-safe-bottom));
+}
+
+.dm-card {
+  background: var(--dm-bg-card);
+  border-radius: var(--dm-radius-md);
+  box-shadow: var(--dm-shadow-card);
+}
+
+.dm-price {
+  color: var(--dm-gold-500);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.dm-muted {
+  color: var(--dm-text-3);
+}
+
+.dm-press {
+  transition: transform 0.14s ease, opacity 0.14s ease;
+}
+
+.dm-press:active {
+  opacity: 0.72;
+  transform: scale(0.985);
+}
+
+.dm-btn-primary,
+.dm-btn-secondary,
+.dm-btn-wechat {
+  height: 96rpx;
+  line-height: 96rpx;
+  border-radius: var(--dm-radius-pill);
+  font-size: 32rpx;
+  font-weight: 700;
+  padding: 0 44rpx;
+}
+
+.dm-btn-primary {
+  color: #3A1A00;
+  background: var(--dm-grad-gold);
+  box-shadow: 0 12rpx 36rpx rgba(211, 138, 0, 0.28);
+}
+
+.dm-btn-secondary {
+  color: var(--dm-gold-500);
+  background: var(--dm-gold-50);
+  border: 2rpx solid #F2D78A;
+}
+
+.dm-btn-wechat {
+  color: #FFFFFF;
+  background: var(--dm-green-wechat);
+  box-shadow: 0 12rpx 36rpx rgba(18, 185, 91, 0.25);
+}
+
+.dm-safe-bottom {
+  padding-bottom: var(--dm-safe-bottom);
+}

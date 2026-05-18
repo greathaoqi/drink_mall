@@ -15,6 +15,6 @@ public interface AdminSystemService {
     void updateAdminUserStatus(Long userId, Integer status);
     List<Map<String, Object>> getRoles();
     List<SysConfig> getConfigs();
-    void updateConfig(String configKey, String configValue);
+    void updateConfig(String configKey, String configValue, String reason);
     Page<OperationLog> getOperationLogs(Long userId, String module, String startDate, String endDate, Integer page, Integer size);
 }

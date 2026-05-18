@@ -10,10 +10,10 @@ import java.util.Map;
 public interface AdminOrderService {
     IPage<OrderResponse> getOrders(String status, String orderNo, Long userId, String startDate, String endDate, Integer page, Integer size);
     OrderResponse getOrderDetail(Long orderId);
-    void confirmOfflineTransfer(Long orderId, Long adminUserId, String paymentNo);
-    void shipOrder(Long orderId, String logisticsCompany, String logisticsNo);
+    void confirmOfflineTransfer(Long orderId, Long adminUserId, String paymentNo, String reason);
+    void shipOrder(Long orderId, String logisticsCompany, String logisticsNo, String reason);
     void cancelOrder(Long orderId, String reason);
-    void completeOrder(Long orderId);
+    void completeOrder(Long orderId, String reason);
     void modifyPrice(Long orderId, BigDecimal newPrice);
     Page<Aftersale> getAftersales(String status, Integer page, Integer size);
     void approveAftersale(Long aftersaleId, String remark);

@@ -195,7 +195,8 @@ public class AdminContentServiceImpl implements AdminContentService {
                 + ", status=" + video.getStatus()
                 + ", watchLevel=" + video.getWatchLevel()
                 + ", paid=" + video.getPaid()
-                + ", price=" + video.getPrice();
+                + ", price=" + video.getPrice()
+                + ", paymentMethods=" + video.getPaymentMethods();
     }
 
     private String articleSummary(HelpArticle article) {
@@ -206,7 +207,8 @@ public class AdminContentServiceImpl implements AdminContentService {
                 + ", status=" + article.getStatus()
                 + ", watchLevel=" + article.getWatchLevel()
                 + ", paid=" + article.getPaid()
-                + ", price=" + article.getPrice();
+                + ", price=" + article.getPrice()
+                + ", paymentMethods=" + article.getPaymentMethods();
     }
 
     private void logOperation(String module, String action, Long targetId, String before, String after) {

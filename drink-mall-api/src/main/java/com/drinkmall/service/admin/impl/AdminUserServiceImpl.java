@@ -2,7 +2,10 @@ package com.drinkmall.service.admin.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.drinkmall.dto.AdminReferralNodeResponse;
+import com.drinkmall.entity.OperationLog;
 import com.drinkmall.entity.User;
+import com.drinkmall.mapper.OperationLogMapper;
 import com.drinkmall.mapper.OrderMapper;
 import com.drinkmall.mapper.PointsLogMapper;
 import com.drinkmall.mapper.UserMapper;
@@ -17,6 +20,7 @@ import org.springframework.stereotype.Service;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +32,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserMapper userMapper;
     private final OrderMapper orderMapper;
     private final PointsLogMapper pointsLogMapper;
+    private final OperationLogMapper operationLogMapper;
 
     @Override
     public Page<User> getUsers(String keyword, Integer ageVerified, Integer page, Integer size) {
@@ -49,6 +54,23 @@ public class AdminUserServiceImpl implements AdminUserService {
         detail.put("totalSpent", BigDecimal.ZERO);
         detail.put("pointsBalance", user.getPoints() != null ? user.getPoints() : 0);
         return detail;
+    }
+
+    @Override
+    public List<AdminReferralNodeResponse> getReferralAuditTree(Long adminId, Long userId, Integer maxDepth) {
+        int depth = normalizeDepth(maxDepth);
+        List<User> users = userMapper.selectReferralDescendants(userId, depth);
+        OperationLog log = new OperationLog();
+        log.setAdminUserId(adminId);
+        log.setModule("referral");
+        log.setAction("deep_query");
+        log.setTargetId(String.valueOf(userId));
+        log.setDetail("maxDepth=" + depth + ", resultCount=" + users.size());
+        log.setCreatedAt(LocalDateTime.now());
+        operationLogMapper.insert(log);
+        return users.stream()
+                .map(user -> AdminReferralNodeResponse.fromUser(user, normalizeNodeDepth(user)))
+                .toList();
     }
 
     @Override
@@ -83,5 +105,20 @@ public class AdminUserServiceImpl implements AdminUserService {
         } catch (IOException e) {
             throw new RuntimeException("导出失败", e);
         }
+    }
+
+    private int normalizeDepth(Integer maxDepth) {
+        if (maxDepth == null || maxDepth < 3) {
+            return 3;
+        }
+        return Math.min(maxDepth, 50);
+    }
+
+    private Integer normalizeNodeDepth(User user) {
+        return user.getReferralDepth() == null ? inferDepthFromInviter(user) : user.getReferralDepth();
+    }
+
+    private Integer inferDepthFromInviter(User user) {
+        return user.getInviterId() == null ? 0 : 1;
     }
 }

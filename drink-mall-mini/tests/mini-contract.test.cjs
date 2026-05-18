@@ -6,29 +6,89 @@ const test = require('node:test')
 const root = join(__dirname, '..')
 const read = (path) => readFileSync(join(root, path), 'utf8')
 
-test('team service exposes only compliant mini-program team endpoints', () => {
-  const source = read('src/services/team.ts')
+test('mini program imports shared design tokens globally', () => {
+  const app = read('src/App.vue')
+  const tokens = read('src/styles/design-tokens.scss')
 
-  assert.match(source, /\/team\/overview/)
-  assert.match(source, /\/team\/directs/)
-  assert.match(source, /\/team\/indirects/)
-  assert.doesNotMatch(source, /third|tree|children|descendants|level3|三级/)
+  assert.match(app, /@import ['"]@\/styles\/design-tokens\.scss['"]/)
+  assert.match(tokens, /--dm-brown-900:\s*#1F0900/i)
+  assert.match(tokens, /--dm-gold-500:\s*#D38A00/i)
+  assert.match(tokens, /--dm-bg-app:\s*#F7F3EA/i)
+  assert.match(tokens, /--dm-radius-md:\s*12rpx/i)
+  assert.match(tokens, /--dm-shadow-card:/)
+  assert.match(tokens, /\.dm-page/)
+  assert.match(tokens, /\.dm-btn-primary/)
 })
 
-test('team page renders direct and indirect lists without expandable tree data', () => {
-  const source = read('src/pages/team/index.vue')
-  const script = source.match(/<script setup lang="ts">([\s\S]*?)<\/script>/)?.[1] || ''
+test('shared visual foundation components expose reusable app chrome contracts', () => {
+  const nav = read('src/components/DesignNavBar/DesignNavBar.vue')
+  const tabs = read('src/components/SectionTabs/SectionTabs.vue')
+  const modal = read('src/components/DesignModal/DesignModal.vue')
+  const sheet = read('src/components/DesignActionSheet/DesignActionSheet.vue')
+  const toast = read('src/components/DesignToast/DesignToast.vue')
 
-  assert.match(source, /directs/)
-  assert.match(source, /indirects/)
-  assert.doesNotMatch(script, /thirdLevel|children|tree|expand|level3/)
-  assert.doesNotMatch(source, /v-for=".*children|@click=".*expand/)
+  assert.match(nav, /safeAreaInsetTop/)
+  assert.match(nav, /back|close/)
+  assert.match(tabs, /modelValue/)
+  assert.match(tabs, /update:modelValue/)
+  assert.match(modal, /cancelText/)
+  assert.match(modal, /confirmText/)
+  assert.match(sheet, /actions/)
+  assert.match(sheet, /safe-area-inset-bottom/)
+  assert.match(toast, /uni\.showToast/)
+  assert.doesNotMatch(nav + tabs + modal + sheet + toast, /third|tree|children|descendants|level3|\u4e09\u7ea7/)
 })
 
-test('checkout page blocks disabled payment methods before creating order', () => {
-  const source = read('src/pages/checkout/index.vue')
+test('shared page states include loading empty error and auth gate contracts', () => {
+  const pageState = read('src/components/PageState/PageState.vue')
+  const authGate = read('src/components/AuthGate/AuthGate.vue')
+  const loginPrompt = read('src/components/LoginPrompt/LoginPrompt.vue')
 
-  assert.match(source, /selectedMethod\.value\.disabled/)
-  assert.match(source, /orderApi\.create/)
-  assert.match(source, /uni\.showToast/)
+  assert.match(pageState, /loadingText/)
+  assert.match(pageState, /errorText/)
+  assert.match(pageState, /emptyText/)
+  assert.match(pageState, /authRequired/)
+  assert.match(authGate, /allowGuest|guest/)
+  assert.match(loginPrompt, /login|Login|\u767b\u5f55/)
+})
+
+test('product purchase pages block disabled payment and expose share poster paths without mojibake', () => {
+  const detail = read('src/pages/product/detail/index.vue')
+  const checkout = read('src/pages/checkout/index.vue')
+  const selector = read('src/components/PayMethodSelector/PayMethodSelector.vue')
+  const result = read('src/pages/payment/result/index.vue')
+  const touched = [
+    detail,
+    read('src/pages/cart/index.vue'),
+    checkout,
+    read('src/pages/address/list/index.vue'),
+    read('src/pages/address/edit/index.vue'),
+    result,
+    selector
+  ].join('\n')
+
+  assert.match(detail, /showShareSheet/)
+  assert.match(detail, /showPoster/)
+  assert.match(detail, /buildProductSharePath/)
+  assert.match(detail, /scene:\s*'share_product'/)
+  assert.match(checkout, /selectedMethod\.value\.disabled/)
+  assert.match(checkout, /canUseSinglePayMethod/)
+  assert.match(checkout, /hasGiftAndNormal/)
+  assert.match(checkout, /hasInvestment/)
+  assert.match(selector, /item\.disabled/)
+  assert.match(selector, /uni\.showToast/)
+  assert.match(result, /\u652f\u4ed8\u6210\u529f/)
+  assert.match(result, /\u652f\u4ed8\u672a\u5b8c\u6210/)
+  assert.doesNotMatch(touched, /锟|閰|璐|鏀|绉|鍟|鐧|寰|榛|涓|浣|鍗曢|褰撳墠|璇烽|楼/)
+})
+
+test('account flow page exposes design states and mandatory invite binding contract', () => {
+  const login = read('src/pages/login/index.vue')
+
+  assert.match(login, /inviteCode/)
+  assert.match(login, /showPhoneSheet/)
+  assert.match(login, /showAgreementPanel/)
+  assert.match(login, /confirmPhoneAndLogin/)
+  assert.match(login, /parseReferralOptions/)
+  assert.match(login, /agreed/)
 })

@@ -6,7 +6,7 @@
       type="info"
       show-icon
       :closable="false"
-      title="等级、佣金、提现、售后冻结期等规则均从后端配置读取；标记为待业务确认的配置不会参与业务执行。"
+      title="等级、佣金、提现、售后冻结期、内容权限、支付方式等规则均从后端配置读取；标记为待业务确认的配置不得直接当作业务默认值。"
     />
     <el-table :data="configs" v-loading="loading" empty-text="暂无配置项">
       <el-table-column prop="configKey" label="配置键" width="260" />
@@ -27,7 +27,7 @@
       <el-table-column prop="updatedAt" label="更新时间" width="180" />
       <el-table-column label="操作" width="100" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="updateConfig(row)">保存</el-button>
+          <el-button link type="primary" v-if="can('system:config')" @click="updateConfig(row)">保存</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -36,8 +36,9 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
+import { can, confirmCritical, promptReason } from '@/utils/adminAction'
 
 const loading = ref(false)
 const configs = ref<any[]>([])
@@ -55,8 +56,11 @@ const loadData = async () => {
 }
 
 const updateConfig = async (row: any) => {
-  await ElMessageBox.confirm(`确认修改配置 ${row.configKey}？该操作会写入操作日志。`, '配置变更确认', { type: 'warning' })
-  await request.put(`/api/v1/admin/system/configs/${row.configKey}`, null, { params: { configValue: row.configValue } })
+  const reason = await promptReason('配置变更确认', `请输入修改配置 ${row.configKey} 的原因`)
+  await confirmCritical(`确认修改配置 ${row.configKey}？该操作会写入操作日志。`, '配置变更确认')
+  await request.put(`/api/v1/admin/system/configs/${row.configKey}`, null, {
+    params: { configValue: row.configValue, reason }
+  })
   ElMessage.success('配置已保存')
   loadData()
 }
@@ -65,21 +69,8 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.mb12 {
-  margin-bottom: 12px;
-}
-
-.ml8 {
-  margin-left: 8px;
-}
-
-.config-value-cell {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.config-value-cell .el-input {
-  flex: 1;
-}
+.mb12 { margin-bottom: 12px; }
+.ml8 { margin-left: 8px; }
+.config-value-cell { display: flex; gap: 8px; align-items: center; }
+.config-value-cell .el-input { flex: 1; }
 </style>

@@ -83,13 +83,13 @@ public class AdminProductServiceImpl implements AdminProductService {
 
     @Override
     @Transactional
-    public void updateStatus(Long productId, Integer status) {
+    public void updateStatus(Long productId, Integer status, String reason) {
         Product product = productMapper.selectById(productId);
         if (product == null) throw new BusinessException(404, "商品不存在");
         product.setStatus(status);
         product.setUpdatedAt(LocalDateTime.now());
         productMapper.updateById(product);
-        logOperation("status", productId, "status=" + status);
+        logOperation("status", productId, "status=" + status + ", reason=" + reason);
     }
 
     @Override
@@ -107,14 +107,14 @@ public class AdminProductServiceImpl implements AdminProductService {
 
     @Override
     @Transactional
-    public void updatePaymentMethods(Long productId, String allowedPaymentMethods, Boolean wineBeanPayable) {
+    public void updatePaymentMethods(Long productId, String allowedPaymentMethods, Boolean wineBeanPayable, String reason) {
         Product product = productMapper.selectById(productId);
         if (product == null) throw new BusinessException(404, "商品不存在");
         product.setAllowedPaymentMethods(allowedPaymentMethods);
         product.setWineBeanPayable(Boolean.TRUE.equals(wineBeanPayable));
         product.setUpdatedAt(LocalDateTime.now());
         productMapper.updateById(product);
-        logOperation("payment_methods", productId, "allowedPaymentMethods=" + allowedPaymentMethods + ", wineBeanPayable=" + wineBeanPayable);
+        logOperation("payment_methods", productId, "allowedPaymentMethods=" + allowedPaymentMethods + ", wineBeanPayable=" + wineBeanPayable + ", reason=" + reason);
     }
 
     @Override

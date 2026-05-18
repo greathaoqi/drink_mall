@@ -14,7 +14,7 @@
       </el-row>
     </template>
 
-    <el-alert class="mb12" type="info" show-icon :closable="false" title="身份证唯一性由后端校验；如返回重复证件提示，页面会展示审核失败原因。" />
+    <el-alert class="mb12" type="info" show-icon :closable="false" title="身份证唯一性由后端校验；审核通过和拒绝都必须填写原因并记录操作日志。" />
     <el-table :data="tableData" v-loading="loading" empty-text="暂无实名申请">
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="userId" label="用户ID" width="100" />
@@ -31,8 +31,8 @@
       <el-table-column prop="createdAt" label="提交时间" width="180" />
       <el-table-column label="操作" width="170" fixed="right">
         <template #default="{ row }">
-          <el-button link type="success" v-if="row.status === 'pending'" @click="review(row, true)">通过</el-button>
-          <el-button link type="danger" v-if="row.status === 'pending'" @click="review(row, false)">拒绝</el-button>
+          <el-button link type="success" v-if="can('real-name:review') && row.status === 'pending'" @click="review(row, true)">通过</el-button>
+          <el-button link type="danger" v-if="can('real-name:review') && row.status === 'pending'" @click="review(row, false)">拒绝</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -42,8 +42,9 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
+import { can, confirmCritical, promptReason } from '@/utils/adminAction'
 
 const loading = ref(false)
 const tableData = ref<any[]>([])
@@ -65,17 +66,12 @@ const loadData = async () => {
 }
 
 const review = async (row: any, approved: boolean) => {
-  let rejectReason = ''
-  if (approved) {
-    await ElMessageBox.confirm(`确认通过用户 ${row.userId} 的实名认证？`, '实名审核确认', { type: 'warning' })
-  } else {
-    const result = await ElMessageBox.prompt('请输入拒绝原因', '实名审核拒绝', {
-      inputPattern: /.+/,
-      inputErrorMessage: '拒绝原因必填'
-    })
-    rejectReason = result.value
-  }
-  await request.post(`/api/v1/admin/real-name/${row.id}/review`, { approved, rejectReason })
+  const reason = await promptReason(approved ? '实名审核通过' : '实名审核拒绝', approved ? '请输入通过原因' : '请输入拒绝原因')
+  await confirmCritical(`确认${approved ? '通过' : '拒绝'}用户 ${row.userId} 的实名认证？`, '实名审核确认')
+  await request.post(`/api/v1/admin/real-name/${row.id}/review`, {
+    approved,
+    rejectReason: reason
+  })
   ElMessage.success('审核操作已提交')
   loadData()
 }

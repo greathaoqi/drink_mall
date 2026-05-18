@@ -4,8 +4,14 @@
       <template #header><el-button type="primary" @click="handleAdd">添加文章</el-button></template>
       <el-table :data="tableData" v-loading="loading">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="title" label="标题" />
+        <el-table-column prop="title" label="标题" min-width="180" />
         <el-table-column prop="category" label="分类" width="100" />
+        <el-table-column prop="watchLevel" label="观看等级" width="120" />
+        <el-table-column prop="paid" label="付费" width="90">
+          <template #default="{ row }"><el-tag :type="row.paid ? 'warning' : 'info'">{{ row.paid ? '付费' : '免费' }}</el-tag></template>
+        </el-table-column>
+        <el-table-column prop="price" label="价格" width="100" />
+        <el-table-column prop="paymentMethods" label="支付方式" min-width="150" />
         <el-table-column prop="sortOrder" label="排序" width="80" />
         <el-table-column prop="status" label="状态" width="80">
           <template #default="{ row }"><el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '禁用' }}</el-tag></template>
@@ -18,13 +24,25 @@
         </el-table-column>
       </el-table>
     </el-card>
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑文章' : '添加文章'" width="600px">
-      <el-form :model="form" label-width="80px">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑文章' : '添加文章'" width="680px">
+      <el-form :model="form" label-width="100px">
         <el-form-item label="标题"><el-input v-model="form.title" /></el-form-item>
         <el-form-item label="分类">
           <el-select v-model="form.category"><el-option label="常见问题" value="faq" /><el-option label="使用指南" value="guide" /><el-option label="其他" value="other" /></el-select>
         </el-form-item>
-        <el-form-item label="内容"><el-input v-model="form.content" type="textarea" :rows="6" /></el-form-item>
+        <el-form-item label="观看等级">
+          <el-select v-model="form.watchLevel">
+            <el-option v-for="level in levelOptions" :key="level.value" :label="level.label" :value="level.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="是否付费"><el-switch v-model="form.paid" /></el-form-item>
+        <el-form-item label="价格" v-if="form.paid"><el-input-number v-model="form.price" :min="0" :precision="2" /></el-form-item>
+        <el-form-item label="支付方式" v-if="form.paid">
+          <el-checkbox-group v-model="paymentMethodList">
+            <el-checkbox v-for="method in paymentOptions" :key="method.value" :label="method.value">{{ method.label }}</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        <el-form-item label="内容"><el-input v-model="form.content" type="textarea" :rows="8" /></el-form-item>
         <el-form-item label="排序"><el-input-number v-model="form.sortOrder" :min="0" /></el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="form.status">
@@ -46,11 +64,31 @@ import { ref, onMounted } from 'vue'
 import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
 
+const levelOptions = [
+  { label: '普通会员', value: 'normal' },
+  { label: '推客', value: 'promoter' },
+  { label: '县级联营商', value: 'county' },
+  { label: '市级联营商', value: 'city' },
+  { label: '省级联营商', value: 'province' }
+]
+const paymentOptions = [
+  { label: '微信支付', value: 'online' },
+  { label: '余额', value: 'balance' },
+  { label: 'DF', value: 'df' },
+  { label: '酒豆', value: 'wine_bean' },
+  { label: '积分', value: 'points' }
+]
+
 const loading = ref(false)
 const tableData = ref<any[]>([])
 const dialogVisible = ref(false)
 const isEdit = ref(false)
-const form = ref({ id: 0, title: '', category: 'faq', content: '', sortOrder: 0, status: 1 })
+const paymentMethodList = ref<string[]>(['balance'])
+const form = ref(emptyForm())
+
+function emptyForm() {
+  return { id: 0, title: '', category: 'faq', content: '', watchLevel: 'normal', paid: false, price: 0, paymentMethods: 'balance', sortOrder: 0, status: 1 }
+}
 
 const loadData = async () => {
   loading.value = true
@@ -59,14 +97,26 @@ const loadData = async () => {
   loading.value = false
 }
 
-const handleAdd = () => { isEdit.value = false; Object.assign(form.value, { id: 0, title: '', category: 'faq', content: '', sortOrder: 0, status: 1 }); dialogVisible.value = true }
-const handleEdit = (row: any) => { isEdit.value = true; Object.assign(form.value, row); dialogVisible.value = true }
+const handleAdd = () => {
+  isEdit.value = false
+  form.value = emptyForm()
+  paymentMethodList.value = ['balance']
+  dialogVisible.value = true
+}
+
+const handleEdit = (row: any) => {
+  isEdit.value = true
+  form.value = { ...emptyForm(), ...row }
+  paymentMethodList.value = String(form.value.paymentMethods || 'balance').split(',').filter(Boolean)
+  dialogVisible.value = true
+}
 
 const handleSubmit = async () => {
+  const payload = { ...form.value, price: form.value.paid ? form.value.price : 0, paymentMethods: form.value.paid ? paymentMethodList.value.join(',') : '' }
   if (isEdit.value) {
-    await request.put(`/api/v1/admin/content/help-articles/${form.value.id}`, form.value)
+    await request.put(`/api/v1/admin/content/help-articles/${form.value.id}`, payload)
   } else {
-    await request.post('/api/v1/admin/content/help-articles', form.value)
+    await request.post('/api/v1/admin/content/help-articles', payload)
   }
   ElMessage.success('保存成功')
   dialogVisible.value = false

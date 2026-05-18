@@ -55,8 +55,11 @@ public class AdminProductController {
     }
 
     @PutMapping("/{productId}/status")
-    public Result<Void> updateStatus(@PathVariable Long productId, @RequestParam Integer status) {
-        adminProductService.updateStatus(productId, status);
+    public Result<Void> updateStatus(
+            @PathVariable Long productId,
+            @RequestParam Integer status,
+            @RequestParam String reason) {
+        adminProductService.updateStatus(productId, status, reason);
         return Result.success(null);
     }
 
@@ -74,8 +77,9 @@ public class AdminProductController {
     public Result<Void> updatePaymentMethods(
             @PathVariable Long productId,
             @RequestParam String allowedPaymentMethods,
-            @RequestParam(required = false) Boolean wineBeanPayable) {
-        adminProductService.updatePaymentMethods(productId, allowedPaymentMethods, wineBeanPayable);
+            @RequestParam(required = false) Boolean wineBeanPayable,
+            @RequestParam String reason) {
+        adminProductService.updatePaymentMethods(productId, allowedPaymentMethods, wineBeanPayable, reason);
         return Result.success(null);
     }
 

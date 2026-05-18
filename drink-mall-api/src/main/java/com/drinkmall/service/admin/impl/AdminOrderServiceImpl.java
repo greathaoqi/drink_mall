@@ -69,18 +69,18 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     @Override
     public OrderResponse getOrderDetail(Long orderId) {
         Order order = orderMapper.selectById(orderId);
-        if (order == null) throw new BusinessException(404, "订单不存在");
+        if (order == null) throw new BusinessException(404, "order not found");
         return convertToResponse(order);
     }
 
     @Override
     @Transactional
-    public void confirmOfflineTransfer(Long orderId, Long adminUserId, String paymentNo) {
+    public void confirmOfflineTransfer(Long orderId, Long adminUserId, String paymentNo, String reason) {
         Order order = orderMapper.selectById(orderId);
-        if (order == null) throw new BusinessException(404, "订单不存在");
+        if (order == null) throw new BusinessException(404, "order not found");
         if (!OrderStatus.PENDING.getCode().equals(order.getStatus())) return;
         if (!PaymentMethod.OFFLINE_CORPORATE.getCode().equals(order.getPaymentMethod())) {
-            throw new BusinessException(400, "仅线下对公转账订单可后台确认");
+            throw new BusinessException(400, "only offline corporate orders can be confirmed by admin");
         }
         order.setStatus(OrderStatus.PAID.getCode());
         order.setPaymentNo(paymentNo);
@@ -89,30 +89,30 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         order.setOfflineConfirmedAt(LocalDateTime.now());
         orderMapper.updateById(order);
         afterOrderPaid(order);
-        logOperation("offline_confirm", orderId, "paymentNo=" + paymentNo);
+        logOperation("offline_confirm", orderId, "paymentNo=" + paymentNo + ", reason=" + reason);
     }
 
     @Override
     @Transactional
-    public void shipOrder(Long orderId, String logisticsCompany, String logisticsNo) {
+    public void shipOrder(Long orderId, String logisticsCompany, String logisticsNo, String reason) {
         Order order = orderMapper.selectById(orderId);
-        if (order == null) throw new BusinessException(404, "订单不存在");
-        if (!OrderStatus.PAID.getCode().equals(order.getStatus())) throw new BusinessException(400, "只能发货已支付订单");
+        if (order == null) throw new BusinessException(404, "order not found");
+        if (!OrderStatus.PAID.getCode().equals(order.getStatus())) throw new BusinessException(400, "only paid orders can be shipped");
         order.setStatus(OrderStatus.SHIPPED.getCode());
         order.setLogisticsCompany(logisticsCompany);
         order.setLogisticsNo(logisticsNo);
         order.setShipTime(LocalDateTime.now());
         orderMapper.updateById(order);
-        logOperation("ship", orderId, logisticsCompany + "/" + logisticsNo);
+        logOperation("ship", orderId, logisticsCompany + "/" + logisticsNo + ", reason=" + reason);
     }
 
     @Override
     @Transactional
     public void cancelOrder(Long orderId, String reason) {
         Order order = orderMapper.selectById(orderId);
-        if (order == null) throw new BusinessException(404, "订单不存在");
+        if (order == null) throw new BusinessException(404, "order not found");
         if (OrderStatus.COMPLETED.getCode().equals(order.getStatus()) || OrderStatus.CANCELLED.getCode().equals(order.getStatus())) {
-            throw new BusinessException(400, "订单已完成或已取消");
+            throw new BusinessException(400, "completed or cancelled orders cannot be cancelled");
         }
         order.setStatus(OrderStatus.CANCELLED.getCode());
         order.setCancelReason(reason);
@@ -125,23 +125,23 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
     @Override
     @Transactional
-    public void completeOrder(Long orderId) {
+    public void completeOrder(Long orderId, String reason) {
         Order order = orderMapper.selectById(orderId);
-        if (order == null) throw new BusinessException(404, "订单不存在");
-        if (OrderStatus.CANCELLED.getCode().equals(order.getStatus())) throw new BusinessException(400, "已取消订单不能完成");
+        if (order == null) throw new BusinessException(404, "order not found");
+        if (OrderStatus.CANCELLED.getCode().equals(order.getStatus())) throw new BusinessException(400, "cancelled orders cannot be completed");
         order.setStatus(OrderStatus.COMPLETED.getCode());
         order.setCompleteTime(LocalDateTime.now());
         orderMapper.updateById(order);
         rewardService.unfreezeDueRewards(LocalDateTime.now());
-        logOperation("complete", orderId, "后台完成订单");
+        logOperation("complete", orderId, "reason=" + reason);
     }
 
     @Override
     @Transactional
     public void modifyPrice(Long orderId, BigDecimal newPrice) {
         Order order = orderMapper.selectById(orderId);
-        if (order == null) throw new BusinessException(404, "订单不存在");
-        if (!OrderStatus.PENDING.getCode().equals(order.getStatus())) throw new BusinessException(400, "只能修改待付款订单价格");
+        if (order == null) throw new BusinessException(404, "order not found");
+        if (!OrderStatus.PENDING.getCode().equals(order.getStatus())) throw new BusinessException(400, "only pending orders can be repriced");
         order.setPayAmount(newPrice);
         orderMapper.updateById(order);
         logOperation("modify_price", orderId, "newPrice=" + newPrice);
@@ -160,7 +160,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     @Transactional
     public void approveAftersale(Long aftersaleId, String remark) {
         Aftersale aftersale = aftersaleMapper.selectById(aftersaleId);
-        if (aftersale == null) throw new BusinessException(404, "售后申请不存在");
+        if (aftersale == null) throw new BusinessException(404, "aftersale not found");
         aftersale.setStatus(AftersaleStatus.APPROVED.getCode());
         aftersale.setAdminRemark(remark);
         aftersale.setProcessedAt(LocalDateTime.now());
@@ -179,7 +179,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     @Transactional
     public void rejectAftersale(Long aftersaleId, String reason) {
         Aftersale aftersale = aftersaleMapper.selectById(aftersaleId);
-        if (aftersale == null) throw new BusinessException(404, "售后申请不存在");
+        if (aftersale == null) throw new BusinessException(404, "aftersale not found");
         aftersale.setStatus(AftersaleStatus.REJECTED.getCode());
         aftersale.setAdminRemark(reason);
         aftersale.setProcessedAt(LocalDateTime.now());

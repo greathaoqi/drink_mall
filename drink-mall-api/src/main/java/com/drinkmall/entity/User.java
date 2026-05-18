@@ -79,6 +79,9 @@ public class User {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 
+    @TableField(exist = false)
+    private Integer referralDepth;
+
     @Version
     private Integer version;
 }

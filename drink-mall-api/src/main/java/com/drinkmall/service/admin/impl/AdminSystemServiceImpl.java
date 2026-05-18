@@ -99,7 +99,7 @@ public class AdminSystemServiceImpl implements AdminSystemService {
     }
 
     @Override
-    public void updateConfig(String configKey, String configValue) {
+    public void updateConfig(String configKey, String configValue, String reason) {
         SysConfig config = sysConfigMapper.selectOne(new LambdaQueryWrapper<SysConfig>().eq(SysConfig::getConfigKey, configKey));
         if (config == null) {
             config = new SysConfig();
@@ -107,13 +107,13 @@ public class AdminSystemServiceImpl implements AdminSystemService {
             config.setConfigValue(configValue);
             config.setUpdatedAt(LocalDateTime.now());
             sysConfigMapper.insert(config);
-            logOperation("config", "create", config.getId(), configKey + "=" + configValue);
+            logOperation("config", "create", config.getId(), configKey + "=" + configValue + ", reason=" + reason);
         } else {
             String before = config.getConfigValue();
             config.setConfigValue(configValue);
             config.setUpdatedAt(LocalDateTime.now());
             sysConfigMapper.updateById(config);
-            logOperation("config", "update", config.getId(), configKey + ": " + before + " -> " + configValue);
+            logOperation("config", "update", config.getId(), configKey + ": " + before + " -> " + configValue + ", reason=" + reason);
         }
     }
 
