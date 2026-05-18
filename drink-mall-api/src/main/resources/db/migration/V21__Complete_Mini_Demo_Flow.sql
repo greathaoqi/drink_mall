@@ -9,13 +9,13 @@ INSERT INTO users (
     real_name_status, main_zone_paid_amount, age_verified, age_verified_at, status,
     created_at, updated_at, version
 ) VALUES
-(10000, 'demo-seed-openid', 'demo-seed-unionid', '演示上级-总部种子', '/static/images/page-profile.png', '13800138010', 50000.00, 0.00, 9999, 'city', 180000.00, 3000.00, 1000.00, 0.00, NULL, 'DEMO-SEED', NULL, 'admin_seed', TRUE, 'approved', 120000.00, TRUE, NOW(), 1, NOW(), NOW(), 0),
-(10001, 'demo-openid', 'demo-unionid', '演示用户', '/static/images/page-profile.png', '13800138000', 20000.00, 0.00, 5000, 'normal', 66800.00, 1500.00, 800.00, 0.00, 10000, 'DEMO1001', 'DEMO-SEED', 'demo', FALSE, 'approved', 0.00, TRUE, NOW(), 1, NOW(), NOW(), 0),
-(10002, 'demo-direct-1-openid', 'demo-direct-1-unionid', '演示直推-主产品客户', '/static/images/page-profile.png', '13800138002', 3200.00, 0.00, 1200, 'promoter', 16800.00, 260.00, 120.00, 0.00, 10001, 'DEMO-DIRECT-1', 'DEMO1001', 'share_mini', FALSE, 'approved', 399.00, TRUE, NOW(), 1, NOW(), NOW(), 0),
-(10003, 'demo-direct-2-openid', 'demo-direct-2-unionid', '演示直推-招商客户', '/static/images/page-profile.png', '13800138003', 8600.00, 0.00, 1800, 'county', 50000.00, 520.00, 240.00, 0.00, 10001, 'DEMO-DIRECT-2', 'DEMO1001', 'share_product', FALSE, 'approved', 2600.00, TRUE, NOW(), 1, NOW(), NOW(), 0),
-(10004, 'demo-indirect-1-openid', 'demo-indirect-1-unionid', '演示间推-复购客户', '/static/images/page-profile.png', '13800138004', 1500.00, 0.00, 900, 'normal', 5800.00, 80.00, 60.00, 0.00, 10002, 'DEMO-INDIRECT-1', 'DEMO-DIRECT-1', 'manual_code', FALSE, 'approved', 0.00, TRUE, NOW(), 1, NOW(), NOW(), 0),
-(10005, 'demo-indirect-2-openid', 'demo-indirect-2-unionid', '演示间推-礼包客户', '/static/images/page-profile.png', '13800138005', 900.00, 0.00, 760, 'normal', 4200.00, 60.00, 20.00, 0.00, 10003, 'DEMO-INDIRECT-2', 'DEMO-DIRECT-2', 'qr_code', FALSE, 'approved', 0.00, TRUE, NOW(), 1, NOW(), NOW(), 0),
-(10006, 'demo-third-level-openid', 'demo-third-level-unionid', '演示三级统计用户', '/static/images/page-profile.png', '13800138006', 500.00, 0.00, 300, 'normal', 1200.00, 0.00, 0.00, 0.00, 10004, 'DEMO-THIRD-1', 'DEMO-INDIRECT-1', 'share_mini', FALSE, 'approved', 0.00, TRUE, NOW(), 1, NOW(), NOW(), 0)
+(10000, 'demo-seed-openid', 'demo-seed-unionid', '演示上级-总部种子', 'https://img.yzcdn.cn/vant/cat.jpeg', '13800138010', 50000.00, 0.00, 9999, 'city', 180000.00, 3000.00, 1000.00, 0.00, NULL, 'DEMO-SEED', NULL, 'admin_seed', TRUE, 'approved', 120000.00, TRUE, NOW(), 1, NOW(), NOW(), 0),
+(10001, 'demo-openid', 'demo-unionid', '演示用户', 'https://img.yzcdn.cn/vant/cat.jpeg', '13800138000', 20000.00, 0.00, 5000, 'normal', 66800.00, 1500.00, 800.00, 0.00, 10000, 'DEMO1001', 'DEMO-SEED', 'demo', FALSE, 'approved', 0.00, TRUE, NOW(), 1, NOW(), NOW(), 0),
+(10002, 'demo-direct-1-openid', 'demo-direct-1-unionid', '演示直推-主产品客户', 'https://img.yzcdn.cn/vant/cat.jpeg', '13800138002', 3200.00, 0.00, 1200, 'promoter', 16800.00, 260.00, 120.00, 0.00, 10001, 'DEMO-DIRECT-1', 'DEMO1001', 'share_mini', FALSE, 'approved', 399.00, TRUE, NOW(), 1, NOW(), NOW(), 0),
+(10003, 'demo-direct-2-openid', 'demo-direct-2-unionid', '演示直推-招商客户', 'https://img.yzcdn.cn/vant/cat.jpeg', '13800138003', 8600.00, 0.00, 1800, 'county', 50000.00, 520.00, 240.00, 0.00, 10001, 'DEMO-DIRECT-2', 'DEMO1001', 'share_product', FALSE, 'approved', 2600.00, TRUE, NOW(), 1, NOW(), NOW(), 0),
+(10004, 'demo-indirect-1-openid', 'demo-indirect-1-unionid', '演示间推-复购客户', 'https://img.yzcdn.cn/vant/cat.jpeg', '13800138004', 1500.00, 0.00, 900, 'normal', 5800.00, 80.00, 60.00, 0.00, 10002, 'DEMO-INDIRECT-1', 'DEMO-DIRECT-1', 'manual_code', FALSE, 'approved', 0.00, TRUE, NOW(), 1, NOW(), NOW(), 0),
+(10005, 'demo-indirect-2-openid', 'demo-indirect-2-unionid', '演示间推-礼包客户', 'https://img.yzcdn.cn/vant/cat.jpeg', '13800138005', 900.00, 0.00, 760, 'normal', 4200.00, 60.00, 20.00, 0.00, 10003, 'DEMO-INDIRECT-2', 'DEMO-DIRECT-2', 'qr_code', FALSE, 'approved', 0.00, TRUE, NOW(), 1, NOW(), NOW(), 0),
+(10006, 'demo-third-level-openid', 'demo-third-level-unionid', '演示三级统计用户', 'https://img.yzcdn.cn/vant/cat.jpeg', '13800138006', 500.00, 0.00, 300, 'normal', 1200.00, 0.00, 0.00, 0.00, 10004, 'DEMO-THIRD-1', 'DEMO-INDIRECT-1', 'share_mini', FALSE, 'approved', 0.00, TRUE, NOW(), 1, NOW(), NOW(), 0)
 ON DUPLICATE KEY UPDATE
     unionid = VALUES(unionid),
     nickname = VALUES(nickname),
@@ -61,12 +61,12 @@ INSERT INTO products (
     stock, sales, zone_type, allowed_payment_methods, gift_points, gift_points_price,
     investment_level_code, wine_bean_payable, status, sort_order
 ) VALUES
-(101, 4, '演示主产品 酱香礼盒 500ml*2', '余额支付演示主推款', '适合演示浏览、加购、下单、余额支付和订单流转。', '/static/images/product-wine.png', '["/static/images/product-wine.png","/static/images/product-wine.png"]', 299.00, 399.00, 888, 216, 'main', 'online,balance,wine_bean', 99, NULL, NULL, TRUE, 1, 0),
-(102, 7, '演示零售 干红葡萄酒 750ml', '多商品加购演示', '用于演示零售专区、购物车多商品和普通订单。', '/static/images/product-wine.png', '["/static/images/product-wine.png"]', 128.00, 168.00, 666, 139, 'retail', 'online,balance', 20, NULL, NULL, FALSE, 1, 1),
-(103, 10, '演示零售 精酿啤酒 330ml*6', '低客单价加购演示', '用于演示多商品加购、订单金额计算和售后入口。', '/static/images/product-wine.png', '["/static/images/product-wine.png"]', 59.00, 79.00, 999, 521, 'retail', 'online,balance', 10, NULL, NULL, FALSE, 1, 2),
-(104, 2, '积分兑换 酒具礼包', '纯积分兑换演示', '礼包专区仅支持积分兑换，不支持组合支付。', '/static/images/zone-gift.png', '["/static/images/zone-gift.png"]', 688.00, 888.00, 100, 38, 'gift', 'points', 0, 688, NULL, FALSE, 1, 3),
-(105, 4, '演示招商升级礼包 县级联营商', '购买后演示升级为县级联营商', '招商专区演示商品，已配置实名认证要求、合作确认和投资等级升级。', '/static/images/product-wine.png', '["/static/images/product-wine.png"]', 998.00, 1288.00, 200, 18, 'investment', 'online,balance,wine_bean,offline_corporate', 300, NULL, 'county', TRUE, 1, 4),
-(106, 4, '演示主产品 升级推客套装', '购买后累计主产品金额达到推客门槛', '用于演示普通用户购买主产品后升级推客。', '/static/images/product-wine.png', '["/static/images/product-wine.png"]', 399.00, 499.00, 300, 66, 'main', 'online,balance,wine_bean', 120, NULL, NULL, TRUE, 1, 5)
+(101, 4, '演示主产品 酱香礼盒 500ml*2', '余额支付演示主推款', '适合演示浏览、加购、下单、余额支付和订单流转。', 'https://img.yzcdn.cn/vant/apple-1.jpg', '["https://img.yzcdn.cn/vant/apple-1.jpg","https://img.yzcdn.cn/vant/apple-2.jpg"]', 299.00, 399.00, 888, 216, 'main', 'online,balance,wine_bean', 99, NULL, NULL, TRUE, 1, 0),
+(102, 7, '演示零售 干红葡萄酒 750ml', '多商品加购演示', '用于演示零售专区、购物车多商品和普通订单。', 'https://img.yzcdn.cn/vant/ipad.jpeg', '["https://img.yzcdn.cn/vant/ipad.jpeg"]', 128.00, 168.00, 666, 139, 'retail', 'online,balance', 20, NULL, NULL, FALSE, 1, 1),
+(103, 10, '演示零售 精酿啤酒 330ml*6', '低客单价加购演示', '用于演示多商品加购、订单金额计算和售后入口。', 'https://img.yzcdn.cn/vant/sand.jpg', '["https://img.yzcdn.cn/vant/sand.jpg"]', 59.00, 79.00, 999, 521, 'retail', 'online,balance', 10, NULL, NULL, FALSE, 1, 2),
+(104, 2, '积分兑换 酒具礼包', '纯积分兑换演示', '礼包专区仅支持积分兑换，不支持组合支付。', 'https://img.yzcdn.cn/vant/gift-card.png', '["https://img.yzcdn.cn/vant/gift-card.png"]', 688.00, 888.00, 100, 38, 'gift', 'points', 0, 688, NULL, FALSE, 1, 3),
+(105, 4, '演示招商升级礼包 县级联营商', '购买后演示升级为县级联营商', '招商专区演示商品，已配置实名认证要求、合作确认和投资等级升级。', 'https://img.yzcdn.cn/vant/apple-2.jpg', '["https://img.yzcdn.cn/vant/apple-2.jpg"]', 998.00, 1288.00, 200, 18, 'investment', 'online,balance,wine_bean,offline_corporate', 300, NULL, 'county', TRUE, 1, 4),
+(106, 4, '演示主产品 升级推客套装', '购买后累计主产品金额达到推客门槛', '用于演示普通用户购买主产品后升级推客。', 'https://img.yzcdn.cn/vant/apple-1.jpg', '["https://img.yzcdn.cn/vant/apple-1.jpg"]', 399.00, 499.00, 300, 66, 'main', 'online,balance,wine_bean', 120, NULL, NULL, TRUE, 1, 5)
 ON DUPLICATE KEY UPDATE
     category_id = VALUES(category_id),
     name = VALUES(name),
@@ -111,9 +111,9 @@ ON DUPLICATE KEY UPDATE
 
 INSERT INTO banners (id, title, image_url, link_type, link_value, sort_order, status, location)
 VALUES
-(101, '生产演示：余额支付完整闭环', '/static/images/product-wine.png', 'product', '101', 0, 1, 'home'),
-(102, '生产演示：积分兑换礼包', '/static/images/zone-gift.png', 'product', '104', 1, 1, 'home'),
-(103, '生产演示：招商升级礼包', '/static/images/product-wine.png', 'product', '105', 2, 1, 'home')
+(101, '生产演示：余额支付完整闭环', 'https://img.yzcdn.cn/vant/apple-1.jpg', 'product', '101', 0, 1, 'home'),
+(102, '生产演示：积分兑换礼包', 'https://img.yzcdn.cn/vant/gift-card.png', 'product', '104', 1, 1, 'home'),
+(103, '生产演示：招商升级礼包', 'https://img.yzcdn.cn/vant/apple-2.jpg', 'product', '105', 2, 1, 'home')
 ON DUPLICATE KEY UPDATE
     title = VALUES(title),
     image_url = VALUES(image_url),
