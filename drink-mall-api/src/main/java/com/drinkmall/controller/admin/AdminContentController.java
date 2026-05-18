@@ -1,8 +1,11 @@
 package com.drinkmall.controller.admin;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.Result;
+import com.drinkmall.dto.ContentAnalyticsResponse;
+import com.drinkmall.dto.ContentPurchaseRecordResponse;
 import com.drinkmall.entity.Announcement;
 import com.drinkmall.entity.Banner;
 import com.drinkmall.entity.ContentCategory;
@@ -138,5 +141,21 @@ public class AdminContentController {
     public Result<Void> deleteCategory(@PathVariable Long categoryId) {
         adminContentService.deleteCategory(categoryId);
         return Result.success(null);
+    }
+
+    @GetMapping("/purchases")
+    public Result<IPage<ContentPurchaseRecordResponse>> getPurchaseRecords(
+            @RequestParam(required = false) String contentType,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer size) {
+        return Result.success(adminContentService.getPurchaseRecords(
+            contentType, status, userId, page, size));
+    }
+
+    @GetMapping("/analytics")
+    public Result<ContentAnalyticsResponse> getAnalytics() {
+        return Result.success(adminContentService.getAnalytics());
     }
 }
