@@ -3,6 +3,7 @@ package com.drinkmall.controller;
 import com.drinkmall.common.BusinessException;
 import com.drinkmall.config.WxPayProperties;
 import com.drinkmall.payment.PayCallbackVerifier;
+import com.drinkmall.service.ContentPurchaseService;
 import com.drinkmall.service.OrderService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +30,7 @@ import java.util.Base64;
 public class PayController {
 
     private final OrderService orderService;
+    private final ContentPurchaseService contentPurchaseService;
     private final PayCallbackVerifier payCallbackVerifier;
     private final ObjectMapper objectMapper;
     private final WxPayProperties wxPayProperties;
@@ -44,11 +46,16 @@ public class PayController {
                 log.warn("Ignore non-success WeChat Pay callback: {}", text(root, "trade_state"));
                 return "SUCCESS";
             }
-            orderService.confirmOnlinePaymentCallback(
-                    text(root, "out_trade_no"),
-                    paidAmount(root),
-                    text(root, "transaction_id")
-            );
+            String orderNo = text(root, "out_trade_no");
+            BigDecimal paidAmount = paidAmount(root);
+            String paymentNo = text(root, "transaction_id");
+
+            // Dispatch by order prefix: CP = content purchase, DM = product order
+            if (orderNo != null && orderNo.startsWith("CP")) {
+                contentPurchaseService.confirmPaymentCallback(orderNo, paidAmount, paymentNo);
+            } else {
+                orderService.confirmOnlinePaymentCallback(orderNo, paidAmount, paymentNo);
+            }
             return "SUCCESS";
         } catch (BusinessException e) {
             log.warn("Rejected WeChat Pay callback: {}", e.getMessage());
