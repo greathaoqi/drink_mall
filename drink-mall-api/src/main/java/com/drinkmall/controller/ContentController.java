@@ -62,21 +62,29 @@ public class ContentController {
     @GetMapping
     public Result<IPage<ContentResponse>> getContent(
             @RequestParam(defaultValue = TYPE_VIDEO) String type,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
         Long userId = currentUserId();
+        String likePattern = keyword != null && !keyword.isBlank() ? "%" + keyword + "%" : null;
         if (TYPE_ARTICLE.equals(type)) {
-            IPage<ContentResponse> result = helpArticleMapper.selectPage(new Page<>(page, size),
-                    new LambdaQueryWrapper<HelpArticle>()
-                            .eq(HelpArticle::getStatus, 1)
-                            .orderByAsc(HelpArticle::getSortOrder))
+            LambdaQueryWrapper<HelpArticle> wrapper = new LambdaQueryWrapper<HelpArticle>()
+                    .eq(HelpArticle::getStatus, 1);
+            if (likePattern != null) {
+                wrapper.like(HelpArticle::getTitle, likePattern);
+            }
+            wrapper.orderByDesc(HelpArticle::getCreatedAt);
+            IPage<ContentResponse> result = helpArticleMapper.selectPage(new Page<>(page, size), wrapper)
                     .convert(article -> articleResponse(article, userId));
             return Result.success(result);
         }
-        IPage<ContentResponse> result = videoMapper.selectPage(new Page<>(page, size),
-                new LambdaQueryWrapper<Video>()
-                        .eq(Video::getStatus, 1)
-                        .orderByDesc(Video::getSortOrder))
+        LambdaQueryWrapper<Video> wrapper = new LambdaQueryWrapper<Video>()
+                .eq(Video::getStatus, 1);
+        if (likePattern != null) {
+            wrapper.like(Video::getTitle, likePattern);
+        }
+        wrapper.orderByDesc(Video::getCreatedAt);
+        IPage<ContentResponse> result = videoMapper.selectPage(new Page<>(page, size), wrapper)
                 .convert(video -> videoResponse(video, userId));
         return Result.success(result);
     }
