@@ -128,6 +128,16 @@
 - [ ] **ADM-SYS-03**: 系统记录所有操作日志
 - [ ] **ADM-SYS-04**: 管理员可以配置系统参数
 
+### Content Payment
+
+- [ ] **CPAY-01**: 用户可以通过微信支付购买付费内容
+- [ ] **CPAY-02**: 管理员可以查看内容购买记录（用户、内容、价格、支付方式、时间）
+- [ ] **CPAY-03**: 用户可以通过关键词搜索内容
+- [ ] **CPAY-04**: 管理员可以管理动态内容分类
+- [ ] **CPAY-05**: 未购买付费内容的用户可以预览部分内容
+- [ ] **CPAY-06**: 用户可以点赞/取消点赞内容，内容显示点赞数
+- [ ] **CPAY-07**: 管理员可以查看内容购买统计和收益报表
+
 ## v2 Requirements
 
 Deferred to future release.
@@ -244,10 +254,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ADM-SYS-02 | Phase 5 | Pending |
 | ADM-SYS-03 | Phase 5 | Pending |
 | ADM-SYS-04 | Phase 5 | Pending |
+| CPAY-01 | Phase 6 | Pending |
+| CPAY-02 | Phase 6 | Pending |
+| CPAY-03 | Phase 6 | Pending |
+| CPAY-04 | Phase 6 | Pending |
+| CPAY-05 | Phase 6 | Pending |
+| CPAY-06 | Phase 6 | Pending |
+| CPAY-07 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 68 total
-- Mapped to phases: 68
+- Content Payment requirements: 7 total
+- Mapped to phases: 75
 - Unmapped: 0
 
 ---

@@ -4,8 +4,11 @@ import com.drinkmall.entity.Banner;
 import com.drinkmall.entity.OperationLog;
 import com.drinkmall.mapper.AnnouncementMapper;
 import com.drinkmall.mapper.BannerMapper;
+import com.drinkmall.mapper.ContentCategoryMapper;
+import com.drinkmall.mapper.ContentPurchaseMapper;
 import com.drinkmall.mapper.HelpArticleMapper;
 import com.drinkmall.mapper.OperationLogMapper;
+import com.drinkmall.mapper.UserMapper;
 import com.drinkmall.mapper.VideoMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +28,9 @@ class AdminContentServiceImplTest {
     @Mock private VideoMapper videoMapper;
     @Mock private HelpArticleMapper helpArticleMapper;
     @Mock private OperationLogMapper operationLogMapper;
+    @Mock private ContentCategoryMapper contentCategoryMapper;
+    @Mock private ContentPurchaseMapper contentPurchaseMapper;
+    @Mock private UserMapper userMapper;
 
     private AdminContentServiceImpl adminContentService;
 
@@ -35,7 +41,10 @@ class AdminContentServiceImplTest {
                 announcementMapper,
                 videoMapper,
                 helpArticleMapper,
-                operationLogMapper
+                operationLogMapper,
+                contentCategoryMapper,
+                contentPurchaseMapper,
+                userMapper
         );
     }
 
