@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.drinkmall.common.Result;
 import com.drinkmall.entity.Announcement;
 import com.drinkmall.entity.Banner;
+import com.drinkmall.entity.ContentCategory;
 import com.drinkmall.entity.HelpArticle;
 import com.drinkmall.entity.Video;
 import com.drinkmall.service.admin.AdminContentService;
@@ -114,6 +115,28 @@ public class AdminContentController {
     @DeleteMapping("/help-articles/{articleId}")
     public Result<Void> deleteHelpArticle(@PathVariable Long articleId) {
         adminContentService.deleteHelpArticle(articleId);
+        return Result.success(null);
+    }
+
+    @GetMapping("/categories")
+    public Result<List<ContentCategory>> getCategories() {
+        return Result.success(adminContentService.getCategories());
+    }
+
+    @PostMapping("/categories")
+    public Result<ContentCategory> createCategory(@RequestBody ContentCategory category) {
+        return Result.success(adminContentService.createCategory(category));
+    }
+
+    @PutMapping("/categories/{categoryId}")
+    public Result<ContentCategory> updateCategory(@PathVariable Long categoryId, @RequestBody ContentCategory category) {
+        category.setId(categoryId);
+        return Result.success(adminContentService.updateCategory(category));
+    }
+
+    @DeleteMapping("/categories/{categoryId}")
+    public Result<Void> deleteCategory(@PathVariable Long categoryId) {
+        adminContentService.deleteCategory(categoryId);
         return Result.success(null);
     }
 }
