@@ -25,6 +25,12 @@
 
       <view v-if="canView && detail.purchased" class="notice">已购买，后续可直接观看。</view>
 
+      <!-- D-PREVIEW-01: Show preview for unpurchased paid content -->
+      <view v-if="!canView && detail.preview" class="preview-section">
+        <text class="preview-label">内容预览</text>
+        <text class="preview-text">{{ detail.preview }}</text>
+      </view>
+
       <view v-if="!canView" class="lock-card">
         <view class="lock-icon">锁</view>
         <text class="lock-title">当前内容需解锁</text>
@@ -36,7 +42,9 @@
 
     <view class="bottom-bar">
       <view class="comment-input">写下你的看法...</view>
-      <button class="icon-btn">♡</button>
+      <!-- D-LIKE-01: Like button with toggle and count -->
+      <button class="icon-btn" :class="{ liked: liked }" @click="toggleLike">{{ liked ? '♥' : '♡' }}</button>
+      <text class="like-count">{{ likeCount }}</text>
       <button class="icon-btn" open-type="share">↗</button>
     </view>
   </view>
@@ -54,6 +62,9 @@ const type = ref('video')
 const detail = ref<any>({})
 const payMethod = ref('')
 const methods = ref<any[]>([])
+// D-LIKE-01: Like state variables
+const liked = ref(false)
+const likeCount = ref(0)
 const canView = computed(() => Boolean(detail.value.canView))
 const selectedMethod = computed(() => methods.value.find((m) => m.value === payMethod.value))
 const typeLabel = computed(() => {
@@ -78,6 +89,9 @@ async function load() {
   const raw = detail.value.payMethods || detail.value.availablePayMethods || []
   methods.value = detail.value.canBuy ? normalizeMethods(raw) : []
   payMethod.value = methods.value.find((m) => !m.disabled)?.value || ''
+  // D-LIKE-01: Extract like info (userLiked populated in Plan 06)
+  liked.value = Boolean(detail.value.userLiked)
+  likeCount.value = detail.value.likes || 0
 }
 
 async function buy() {
@@ -101,6 +115,22 @@ async function buy() {
   await contentApi.buy(id.value, type.value, payMethod.value)
   uni.showToast({ title: '购买成功', icon: 'success' })
   load()
+}
+
+// D-LIKE-01: Toggle like function
+async function toggleLike() {
+  if (!requireLogin()) return
+  if (!detail.value.purchased) {
+    uni.showToast({ title: '请先购买内容后再点赞', icon: 'none' })
+    return
+  }
+  try {
+    const res = (await contentApi.like(id.value, type.value)).data
+    liked.value = res.liked
+    likeCount.value = res.likes
+  } catch (e: any) {
+    uni.showToast({ title: e.message || '操作失败', icon: 'none' })
+  }
 }
 
 function formatDate(value?: string) {
@@ -320,5 +350,38 @@ onLoad((options: any) => {
   background: #FFFFFF;
   color: var(--dm-text-2);
   font-size: 34rpx;
+}
+
+/* D-PREVIEW-01: Preview section styles */
+.preview-section {
+  margin-top: 28rpx;
+  padding: 24rpx;
+  background: var(--dm-cream-50);
+  border-radius: var(--dm-radius-md);
+}
+
+.preview-label {
+  display: block;
+  font-size: 24rpx;
+  color: var(--dm-gold-600);
+  margin-bottom: 12rpx;
+}
+
+.preview-text {
+  display: block;
+  font-size: 28rpx;
+  color: var(--dm-text-2);
+  line-height: 1.6;
+}
+
+/* D-LIKE-01: Like button styles */
+.liked {
+  color: #E53935;
+}
+
+.like-count {
+  font-size: 24rpx;
+  color: var(--dm-text-3);
+  margin-left: 4rpx;
 }
 </style>
