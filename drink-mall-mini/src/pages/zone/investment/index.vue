@@ -51,6 +51,7 @@ import PageState from '@/components/PageState/PageState.vue'
 import { productApi } from '@/services/product'
 import { useUserStore } from '@/store/user'
 import { listOf } from '@/utils/format'
+import { buildProductDetailUrl } from '@/utils/product'
 
 const store = useUserStore()
 const products = ref<any[]>([])
@@ -82,7 +83,12 @@ function buy(product: any) {
     uni.showToast({ title: '请先确认合作声明', icon: 'none' })
     return
   }
-  uni.navigateTo({ url: '/pages/product/detail/index?id=' + product.id + '&confirmCooperation=1' })
+  const url = buildProductDetailUrl(product, { confirmCooperation: 1 })
+  if (!url) {
+    uni.showToast({ title: '商品ID缺失', icon: 'none' })
+    return
+  }
+  uni.navigateTo({ url })
 }
 
 function back() {

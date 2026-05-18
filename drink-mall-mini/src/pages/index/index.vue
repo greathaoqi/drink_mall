@@ -85,6 +85,7 @@ import PageState from '@/components/PageState/PageState.vue'
 import { configApi } from '@/services/config'
 import { productApi } from '@/services/product'
 import { listOf } from '@/utils/format'
+import { buildProductDetailUrl } from '@/utils/product'
 import { buildMiniProgramSharePath, captureReferral } from '@/utils/referral'
 import { useUserStore } from '@/store/user'
 
@@ -139,7 +140,12 @@ function openZone(zone: { url: string }) {
 }
 
 function goProduct(product: any) {
-  go('/pages/product/detail/index?id=' + product.id)
+  const url = buildProductDetailUrl(product)
+  if (!url) {
+    uni.showToast({ title: '商品ID缺失', icon: 'none' })
+    return
+  }
+  go(url)
 }
 
 onLoad((options: any) => {

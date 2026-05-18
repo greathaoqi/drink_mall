@@ -149,6 +149,7 @@ import ProductCard from '@/components/ProductCard/ProductCard.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import { productApi } from '@/services/product'
 import { listOf } from '@/utils/format'
+import { buildProductDetailUrl } from '@/utils/product'
 
 const products = ref<any[]>([])
 const categories = ref<any[]>([])
@@ -275,7 +276,12 @@ function applyFilter() {
 }
 
 function goDetail(product: any) {
-  uni.navigateTo({ url: '/pages/product/detail/index?id=' + product.id })
+  const url = buildProductDetailUrl(product)
+  if (!url) {
+    uni.showToast({ title: '商品ID缺失', icon: 'none' })
+    return
+  }
+  uni.navigateTo({ url })
 }
 
 function backOrHome() {

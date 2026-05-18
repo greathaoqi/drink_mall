@@ -174,6 +174,7 @@ import { cartApi } from '@/services/cart'
 import { money } from '@/utils/format'
 import { requireLogin, requireRealName } from '@/utils/auth'
 import { buildProductSharePath, captureReferral } from '@/utils/referral'
+import { normalizeProductId } from '@/utils/product'
 import { useUserStore } from '@/store/user'
 
 const product = ref<any>({})
@@ -209,6 +210,10 @@ const payMethodText = computed(() => {
 })
 
 async function load() {
+  if (!productId.value) {
+    uni.showToast({ title: '商品ID缺失', icon: 'none' })
+    return
+  }
   const res = await productApi.detail(productId.value)
   product.value = res.data || {}
   try {
@@ -260,6 +265,7 @@ function goCart() {
 }
 
 function sharePath() {
+  if (!productId.value) return '/pages/product/list'
   return buildProductSharePath({ productId: productId.value, inviteCode: useUserStore().userInfo?.inviteCode, scene: 'share_product' })
 }
 
@@ -273,8 +279,13 @@ function savePosterPreview() {
 
 onLoad((options: any) => {
   captureReferral(options, useUserStore())
-  productId.value = options.id || ''
+  productId.value = normalizeProductId({ id: options.id, productId: options.productId, product_id: options.product_id })
   if (options.confirmCooperation === '1') cooperationConfirmed.value = true
+  if (!productId.value) {
+    uni.showToast({ title: '商品ID缺失', icon: 'none' })
+    setTimeout(() => uni.switchTab({ url: '/pages/product/list' }), 300)
+    return
+  }
   load()
 })
 

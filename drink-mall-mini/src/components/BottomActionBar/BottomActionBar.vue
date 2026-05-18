@@ -35,12 +35,4 @@
   gap: 16rpx;
   flex: 1;
 }
-
-:deep(button) {
-  height: 76rpx;
-  line-height: 76rpx;
-  border-radius: var(--dm-radius-pill);
-  font-size: 27rpx;
-  font-weight: 700;
-}
 </style>

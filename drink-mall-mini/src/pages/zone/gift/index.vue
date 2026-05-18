@@ -47,6 +47,7 @@ import { productApi } from '@/services/product'
 import { listOf } from '@/utils/format'
 import { useUserStore } from '@/store/user'
 import { requireLogin } from '@/utils/auth'
+import { buildProductDetailUrl, normalizeProductId } from '@/utils/product'
 
 const products = ref<any[]>([])
 const loading = ref(false)
@@ -63,18 +64,28 @@ async function load() {
 }
 
 function goDetail(product: any) {
-  uni.navigateTo({ url: '/pages/product/detail/index?id=' + product.id })
+  const url = buildProductDetailUrl(product)
+  if (!url) {
+    uni.showToast({ title: '商品ID缺失', icon: 'none' })
+    return
+  }
+  uni.navigateTo({ url })
 }
 
 async function redeem(product: any) {
   if (!requireLogin()) return
+  const productId = normalizeProductId(product)
+  if (!productId) {
+    uni.showToast({ title: '商品ID缺失', icon: 'none' })
+    return
+  }
   const need = Number(product.pointsPrice || product.price || 0)
   const has = Number(useUserStore().userInfo?.points || 0)
   if (has < need) {
     uni.showToast({ title: '积分不足，不能提交', icon: 'none' })
     return
   }
-  await productApi.redeemGift(product.id, 1)
+  await productApi.redeemGift(productId, 1)
   uni.showToast({ title: '兑换成功', icon: 'success' })
 }
 
