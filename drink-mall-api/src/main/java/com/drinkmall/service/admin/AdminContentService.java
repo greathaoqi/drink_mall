@@ -1,6 +1,8 @@
 package com.drinkmall.service.admin;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.drinkmall.dto.ContentAnalyticsResponse;
+import com.drinkmall.dto.ContentPurchaseRecordResponse;
 import com.drinkmall.entity.*;
 import java.util.List;
 
@@ -43,4 +45,22 @@ public interface AdminContentService {
      * Per D-CAT-04: shared categories between Video and HelpArticle.
      */
     void deleteCategory(Long categoryId);
+
+    /**
+     * Get content purchase records with pagination.
+     * Per D-ANALYTICS-02: shows user, content title, price, payment method, time.
+     */
+    Page<ContentPurchaseRecordResponse> getPurchaseRecords(
+        String contentType,
+        String status,
+        Long userId,
+        Integer page,
+        Integer size
+    );
+
+    /**
+     * Get content purchase analytics.
+     * Per D-ANALYTICS-01: total revenue, by type, top content, over time.
+     */
+    ContentAnalyticsResponse getAnalytics();
 }
