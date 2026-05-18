@@ -1,6 +1,7 @@
 package com.drinkmall.controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.stp.StpUtil;
 import com.drinkmall.common.Result;
 import com.drinkmall.service.ImageUploadService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class UploadController {
     @PostMapping("/image")
     @SaCheckLogin
     public Result<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
+        StpUtil.checkLogin();
         return Result.success(Map.of("url", imageUploadService.store(file)));
     }
 }
